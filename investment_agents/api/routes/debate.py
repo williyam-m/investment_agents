@@ -9,6 +9,7 @@ GET    /debates/{debate_id}/stream — SSE stream; replays stored stream_events 
                                     trace, or runs a fresh debate via the orchestrator streaming
                                     interface if the debate is not yet stored.
 GET    /debates                  — List recent debates (completed + pending).
+DELETE /debates/{debate_id}      — Delete a debate trace by ID.
 """
 from __future__ import annotations
 
@@ -204,9 +205,30 @@ async def get_debate(debate_id: str) -> JSONResponse:
     "/debates",
     summary="List recent debates",
 )
-async def list_debates(limit: int = 20) -> list:
+async def list_debates(limit: int = 50) -> list:
     """
     Return the most recent debates (completed + pending), newest first.
     Each entry is a summary dict, not the full trace.
     """
     return _repo.list_recent(limit=limit)
+
+
+# ── DELETE /debates/{debate_id} ────────────────────────────────────────────
+
+@router.delete(
+    "/debates/{debate_id}",
+    summary="Delete a debate trace",
+    status_code=200,
+)
+async def delete_debate(debate_id: str) -> JSONResponse:
+    """
+    Delete a debate trace (completed or pending) by its ID.
+    Also removes the persisted JSON file from disk.
+    Returns 404 if not found.
+    """
+    deleted = _repo.delete(debate_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Debate '{debate_id}' not found.")
+
+    logger.info("debate.deleted", debate_id=debate_id)
+    return JSONResponse(content={"debate_id": debate_id, "deleted": True})

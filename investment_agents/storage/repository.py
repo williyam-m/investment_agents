@@ -95,6 +95,36 @@ class DebateRepository:
                 self._pending[debate_id]["failed_at"] = datetime.utcnow().isoformat()
         logger.warning("repository.marked_failed", debate_id=debate_id, error=error)
 
+    def delete(self, debate_id: str) -> bool:
+        """
+        Delete a debate trace (completed or pending) by its ID.
+        Also removes the persisted JSON file from disk.
+        Returns True if something was deleted, False if not found.
+        """
+        deleted = False
+        with self._lock:
+            if debate_id in self._traces:
+                del self._traces[debate_id]
+                deleted = True
+            if debate_id in self._pending:
+                del self._pending[debate_id]
+                deleted = True
+            if debate_id in self._requests:
+                del self._requests[debate_id]
+
+        # Remove persisted file
+        try:
+            path = self._persist_dir / f"{debate_id}.json"
+            if path.exists():
+                path.unlink()
+                logger.debug("repository.deleted_file", path=str(path))
+        except Exception as exc:
+            logger.warning("repository.delete_file_failed", debate_id=debate_id, error=str(exc))
+
+        if deleted:
+            logger.info("repository.deleted", debate_id=debate_id)
+        return deleted
+
     # ── Read operations ────────────────────────────────────────────────────
 
     def get(self, debate_id: str) -> Optional[DebateTrace]:

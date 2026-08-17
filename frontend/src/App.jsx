@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import DebateForm from './components/DebateForm.jsx'
 import LiveFeed from './components/LiveFeed.jsx'
 import CommitteeMemo from './components/CommitteeMemo.jsx'
 import BudgetBar from './components/BudgetBar.jsx'
 import StatusBar from './components/StatusBar.jsx'
+import HistoryPanel from './components/HistoryPanel.jsx'
 
 const API_BASE = '/api/v1'
 
@@ -16,19 +17,33 @@ const AGENT_NAMES = [
 ]
 
 export default function App() {
-  const [status, setStatus]           = useState('idle')
-  const [events, setEvents]           = useState([])
-  const [memo, setMemo]               = useState(null)
-  const [budget, setBudget]           = useState({ total: 40000, used: 0, remaining: 40000 })
-  const [currentRound, setCurrentRound] = useState(0)
-  const [maxRounds, setMaxRounds]     = useState(3)
-  const [error, setError]             = useState(null)
-  const [debating, setDebating]       = useState(false)
+  const [status, setStatus]               = useState('idle')
+  const [events, setEvents]               = useState([])
+  const [memo, setMemo]                   = useState(null)
+  const [budget, setBudget]               = useState({ total: 40000, used: 0, remaining: 40000 })
+  const [currentRound, setCurrentRound]   = useState(0)
+  const [maxRounds, setMaxRounds]         = useState(3)
+  const [error, setError]                 = useState(null)
+  const [debating, setDebating]           = useState(false)
   const [agentThinking, setAgentThinking] = useState([])
-  const eventSourceRef  = useRef(null)
-  const thinkingTimerRef = useRef(null)
+  const [darkMode, setDarkMode]           = useState(() => {
+    try { return localStorage.getItem('darkMode') === 'true' } catch { return false }
+  })
+  const [showHistory, setShowHistory]     = useState(false)
+  const [history, setHistory]             = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
-  // Cycle through "thinking" agent names while request is running
+  const eventSourceRef   = useRef(null)
+  const thinkingTimerRef = useRef(null)
+  const bottomRef        = useRef(null)
+
+  // ── Dark mode ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode)
+    try { localStorage.setItem('darkMode', darkMode) } catch {}
+  }, [darkMode])
+
+  // ── Thinking cycle ───────────────────────────────────────────────────────
   function startThinkingCycle() {
     setAgentThinking(AGENT_NAMES.slice(0, 3))
     let idx = 0
@@ -49,6 +64,68 @@ export default function App() {
     }
     setAgentThinking([])
     setDebating(false)
+  }
+
+  // ── Auto-scroll to bottom ────────────────────────────────────────────────
+  useEffect(() => {
+    if (status === 'running' || memo) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [events, memo, status])
+
+  // ── History ──────────────────────────────────────────────────────────────
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true)
+    try {
+      const resp = await fetch(`${API_BASE}/debates`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setHistory(data)
+      }
+    } catch {}
+    setHistoryLoading(false)
+  }, [])
+
+  useEffect(() => {
+    if (showHistory) fetchHistory()
+  }, [showHistory, fetchHistory])
+
+  async function handleDeleteDebate(debate_id) {
+    try {
+      await fetch(`${API_BASE}/debates/${debate_id}`, { method: 'DELETE' })
+      setHistory(h => h.filter(d => d.debate_id !== debate_id))
+    } catch {}
+  }
+
+  async function handleLoadDebate(debate_id) {
+    try {
+      const resp = await fetch(`${API_BASE}/debates/${debate_id}`)
+      if (!resp.ok) return
+      const data = await resp.json()
+      // Reset state and show the loaded debate
+      setEvents([])
+      setError(null)
+      setCurrentRound(data.total_rounds_completed ?? 0)
+      setMaxRounds(data.total_rounds_completed ?? 0)
+      if (data.committee_memo) setMemo(data.committee_memo)
+      if (data.rounds) {
+        const fakeEvents = []
+        data.rounds.forEach(round => {
+          ;(round.agent_outputs || []).forEach(output => {
+            fakeEvents.push({ type: 'agent_output', data: output })
+          })
+        })
+        setEvents(fakeEvents)
+      }
+      if (data.budget_summary) {
+        const bs = data.budget_summary
+        const total = bs.total_allocated ?? 40000
+        const used  = bs.total_used ?? 0
+        setBudget({ total, used, remaining: total - used })
+      }
+      setStatus('complete')
+      setShowHistory(false)
+    } catch {}
   }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
@@ -92,9 +169,7 @@ export default function App() {
       // ── Sync mode: full response returned immediately ──
       stopThinkingCycle()
 
-      if (data.committee_memo) {
-        setMemo(data.committee_memo)
-      }
+      if (data.committee_memo) setMemo(data.committee_memo)
 
       if (data.rounds) {
         const fakeEvents = []
@@ -110,11 +185,7 @@ export default function App() {
         const bs = data.budget_summary
         const total = bs.total_allocated ?? formData.budget
         const used  = bs.total_used ?? 0
-        setBudget({
-          total,
-          used,
-          remaining: total - used,
-        })
+        setBudget({ total, used, remaining: total - used })
       }
 
       setStatus('complete')
@@ -135,7 +206,6 @@ export default function App() {
     es.addEventListener('agent_output', e => {
       const d = JSON.parse(e.data)
       setEvents(prev => [...prev, { type: 'agent_output', data: d }])
-      // Once we get real events, stop the thinking animation
       stopThinkingCycle()
     })
 
@@ -204,56 +274,96 @@ export default function App() {
         </div>
         <div className="header-right">
           <span className="header-meta">5 analysts · Multi-round debate</span>
+
+          {/* History button */}
+          <button
+            className="icon-btn"
+            onClick={() => { setShowHistory(h => !h) }}
+            title="View debate history"
+            aria-label="History"
+          >
+            🕐 History
+          </button>
+
+          {/* Dark mode toggle */}
+          <button
+            className="icon-btn icon-btn-round"
+            onClick={() => setDarkMode(d => !d)}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle dark mode"
+          >
+            {darkMode ? '☀️' : '🌙'}
+          </button>
         </div>
       </header>
 
-      <main className="app-main">
-        {/* ── Left panel ── */}
-        <div className="left-panel">
-          <DebateForm
-            onSubmit={handleSubmit}
-            disabled={status === 'running'}
-            loading={debating}
-          />
+      {/* ── History panel (slide-in overlay) ── */}
+      {showHistory && (
+        <HistoryPanel
+          history={history}
+          loading={historyLoading}
+          onClose={() => setShowHistory(false)}
+          onLoad={handleLoadDebate}
+          onDelete={handleDeleteDebate}
+          onRefresh={fetchHistory}
+        />
+      )}
 
-          {status !== 'idle' && (
-            <StatusBar
-              status={status}
-              currentRound={currentRound}
-              maxRounds={maxRounds}
-              error={error}
+      {/* ── Chat window (single centred column) ── */}
+      <main className="chat-main">
+        <div className="chat-column">
+
+          {/* Input area — always at top */}
+          <div className="chat-form-area">
+            <DebateForm
+              onSubmit={handleSubmit}
+              disabled={status === 'running'}
+              loading={debating}
             />
-          )}
+          </div>
 
+          {/* Status + Budget inline row (only when active) */}
           {status !== 'idle' && (
-            <BudgetBar
-              total={budget.total}
-              used={budget.used}
-              remaining={budget.remaining}
-            />
-          )}
-        </div>
-
-        {/* ── Right panel ── */}
-        <div className="right-panel">
-          {!hasContent && (
-            <div className="empty-state">
-              <div className="empty-state-icon">📊</div>
-              <h3>No debate running</h3>
-              <p>Enter an investment thesis and click Start to begin the committee debate.</p>
+            <div className="chat-meta-row">
+              <StatusBar
+                status={status}
+                currentRound={currentRound}
+                maxRounds={maxRounds}
+                error={error}
+              />
+              <BudgetBar
+                total={budget.total}
+                used={budget.used}
+                remaining={budget.remaining}
+              />
             </div>
           )}
 
-          {(events.length > 0 || (status === 'running' && debating)) && (
-            <LiveFeed
-              events={events}
-              status={status}
-              debating={debating}
-              agentThinking={agentThinking}
-            />
-          )}
+          {/* Output area — grows downward */}
+          <div className="chat-output">
+            {!hasContent && (
+              <div className="empty-state">
+                <div className="empty-state-icon">📊</div>
+                <h3>No debate running</h3>
+                <p>Enter an investment thesis above and click <strong>Start</strong> to begin the committee debate.</p>
+              </div>
+            )}
 
-          {memo && <CommitteeMemo memo={memo} />}
+            {(events.length > 0 || (status === 'running' && debating)) && (
+              <LiveFeed
+                events={events}
+                status={status}
+                debating={debating}
+                agentThinking={agentThinking}
+              />
+            )}
+
+            {memo && <CommitteeMemo memo={memo} />}
+
+            {/* Scroll anchor */}
+            <div ref={bottomRef} style={{ height: 1 }} />
+          </div>
+
         </div>
       </main>
     </div>
