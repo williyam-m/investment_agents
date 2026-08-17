@@ -1,0 +1,22 @@
+# Core
+litellm>=1.40.0
+langgraph>=1.0.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sse-starlette>=2.1.0
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+structlog>=24.1.0
+tenacity>=8.3.0
+typer[all]>=0.12.0
+python-dotenv>=1.0.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+
+# Optional: semantic divergence scoring (recommended)
+# sentence-transformers>=3.0.0
+
+# Dev / Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0
