@@ -15,12 +15,13 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
 from typing import AsyncIterator
 
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sse_starlette.sse import EventSourceResponse
 
 from investment_agents.models.debate import DebateRequest, DebateTrace
@@ -30,10 +31,19 @@ from investment_agents.storage.repository import DebateRepository
 
 router = APIRouter(tags=["debates"])
 logger = structlog.get_logger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
-# Module-level singletons (replaced easily with DI in production)
-_repo = DebateRepository()
-_orchestrator = DebateOrchestrator()
+
+# ── Dependency providers ───────────────────────────────────────────────────
+
+def get_repo(request: Request) -> DebateRepository:
+    """Return the DebateRepository from app lifespan state."""
+    return request.app.state.repo
+
+
+def get_orchestrator(request: Request) -> DebateOrchestrator:
+    """Return the DebateOrchestrator from app lifespan state."""
+    return request.app.state.orchestrator
 
 
 # ── POST /debates ──────────────────────────────────────────────────────────
@@ -43,7 +53,13 @@ _orchestrator = DebateOrchestrator()
     summary="Start a debate",
     status_code=200,
 )
-async def start_debate(request: DebateRequest) -> JSONResponse:
+@limiter.limit("5/minute")
+async def start_debate(
+    request: Request,
+    body: DebateRequest,
+    repo: DebateRepository = Depends(get_repo),
+    orchestrator: DebateOrchestrator = Depends(get_orchestrator),
+) -> JSONResponse:
     """
     Run a full investment committee debate synchronously and return the
     complete DebateTrace as JSON.
@@ -51,29 +67,31 @@ async def start_debate(request: DebateRequest) -> JSONResponse:
     The debate_id is auto-generated if not supplied in the request body.
     The completed trace is persisted so it can be retrieved later via
     GET /debates/{debate_id}.
+
+    Rate limited to 5 requests per minute per IP.
     """
-    debate_id = request.debate_id  # always set by Pydantic validator
+    debate_id = body.debate_id  # always set by Pydantic validator
 
     logger.info(
         "debate.start",
         debate_id=debate_id,
-        thesis=request.thesis[:80],
+        thesis=body.thesis[:80],
     )
 
     # Mark pending so /stream can return early 404 messages if polled before
     # the debate finishes.
-    _repo.create_pending(debate_id, request.thesis)
-    _repo.save_request(debate_id, request)
+    repo.create_pending(debate_id, body.thesis)
+    repo.save_request(debate_id, body)
 
     try:
-        trace: DebateTrace = await _orchestrator.run(request)
+        trace: DebateTrace = await orchestrator.run(body)
     except Exception as exc:
-        _repo.mark_failed(debate_id, str(exc))
+        repo.mark_failed(debate_id, str(exc))
         logger.error("debate.run_failed", debate_id=debate_id, error=str(exc))
         raise HTTPException(status_code=500, detail=f"Debate execution failed: {exc}") from exc
 
     # Persist the completed trace
-    _repo.save(trace)
+    repo.save(trace)
 
     logger.info(
         "debate.complete",
@@ -91,7 +109,11 @@ async def start_debate(request: DebateRequest) -> JSONResponse:
     "/debates/{debate_id}/stream",
     summary="Stream debate events via SSE",
 )
-async def stream_debate(debate_id: str) -> EventSourceResponse:
+async def stream_debate(
+    debate_id: str,
+    repo: DebateRepository = Depends(get_repo),
+    orchestrator: DebateOrchestrator = Depends(get_orchestrator),
+) -> EventSourceResponse:
     """
     Server-Sent Events endpoint.
 
@@ -108,7 +130,7 @@ async def stream_debate(debate_id: str) -> EventSourceResponse:
     """
     async def event_generator() -> AsyncIterator[dict]:
         # ── Case 1: debate already completed — replay stored events ──────
-        completed_trace = _repo.get(debate_id)
+        completed_trace = repo.get(debate_id)
         if completed_trace is not None:
             stored_events = getattr(completed_trace, "stream_events", None) or []
             if stored_events:
@@ -116,8 +138,8 @@ async def stream_debate(debate_id: str) -> EventSourceResponse:
                     try:
                         event = StreamEvent.model_validate(ev_dict)
                         yield event.to_sse_dict()
-                    except Exception:
-                        # Yield raw dict if validation fails
+                    except Exception as exc:
+                        logger.warning("stream.event_replay_failed", error=str(exc))
                         yield {
                             "event": ev_dict.get("type", "unknown"),
                             "data": json.dumps(ev_dict),
@@ -139,14 +161,15 @@ async def stream_debate(debate_id: str) -> EventSourceResponse:
             return  # done replaying
 
         # ── Case 2: pending debate — run streaming live ───────────────────
-        req = _repo.get_request(debate_id)
+        req = repo.get_request(debate_id)
         if req is not None:
             try:
-                async for event in _orchestrator.run_streaming(req, repository=_repo):
+                async for event in orchestrator.run_streaming(req, repository=repo):
                     yield event.to_sse_dict()
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
+                logger.error("stream.run_failed", debate_id=debate_id, error=str(exc))
                 error_event = StreamEvent.error(
                     debate_id=debate_id,
                     code="STREAM_ERROR",
@@ -173,17 +196,20 @@ async def stream_debate(debate_id: str) -> EventSourceResponse:
     "/debates/{debate_id}",
     summary="Get a completed debate trace",
 )
-async def get_debate(debate_id: str) -> JSONResponse:
+async def get_debate(
+    debate_id: str,
+    repo: DebateRepository = Depends(get_repo),
+) -> JSONResponse:
     """
     Retrieve a stored DebateTrace by its ID.
 
     Returns 404 if the debate does not exist or is still pending.
     Returns 202 with status information if the debate failed.
     """
-    trace = _repo.get(debate_id)
+    trace = repo.get(debate_id)
     if trace is None:
         # Check if it's pending or failed
-        pending = _repo.get_pending_status(debate_id)
+        pending = repo.get_pending_status(debate_id)
         if pending:
             return JSONResponse(
                 status_code=202,
@@ -205,12 +231,15 @@ async def get_debate(debate_id: str) -> JSONResponse:
     "/debates",
     summary="List recent debates",
 )
-async def list_debates(limit: int = 50) -> list:
+async def list_debates(
+    limit: int = 50,
+    repo: DebateRepository = Depends(get_repo),
+) -> list:
     """
     Return the most recent debates (completed + pending), newest first.
     Each entry is a summary dict, not the full trace.
     """
-    return _repo.list_recent(limit=limit)
+    return repo.list_recent(limit=limit)
 
 
 # ── DELETE /debates/{debate_id} ────────────────────────────────────────────
@@ -220,13 +249,16 @@ async def list_debates(limit: int = 50) -> list:
     summary="Delete a debate trace",
     status_code=200,
 )
-async def delete_debate(debate_id: str) -> JSONResponse:
+async def delete_debate(
+    debate_id: str,
+    repo: DebateRepository = Depends(get_repo),
+) -> JSONResponse:
     """
     Delete a debate trace (completed or pending) by its ID.
     Also removes the persisted JSON file from disk.
     Returns 404 if not found.
     """
-    deleted = _repo.delete(debate_id)
+    deleted = repo.delete(debate_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Debate '{debate_id}' not found.")
 

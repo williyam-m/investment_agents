@@ -22,6 +22,8 @@
 - [Example Output](#example-output)
 - [Development](#development)
 - [Environment Variables](#environment-variables)
+- [Future Improvements](#future-improvements)
+- [Prompts Used](#prompts-used)
 - [License](#license)
 
 ---
@@ -159,10 +161,10 @@ brew install ollama
 ollama serve          # runs on http://localhost:11434
 
 # Pull the default model
-ollama pull llama2
+ollama pull llama2:7b
 
 # Optional: use a stronger model
-ollama pull llama3
+ollama pull llama2:7b
 ollama pull mistral
 ```
 
@@ -190,7 +192,7 @@ cp .env.example .env
 ### 4. Run a debate via CLI
 
 ```bash
-# Basic debate — uses Ollama llama2 by default
+# Basic debate — uses Ollama llama2:7b by default
 investment-agents debate "Apple is undervalued at current P/E of 28x given its services growth trajectory" \
   --ticker AAPL \
   --rounds 3
@@ -271,7 +273,7 @@ Start a new debate session. Runs synchronously and returns the complete `DebateT
   "total_budget": 40000,
   "max_rounds": 3,
   "model_config": {
-    "model": "ollama/llama2",
+    "model": "ollama/llama2:7b",
     "temperature": 0.7,
     "max_tokens_per_call": 1000,
     "ollama_base_url": "http://localhost:11434"
@@ -478,6 +480,17 @@ DebateRequest.total_budget (default: 40,000 tokens)
 
 ## Example Output
 
+Two complete real debate runs are saved as JSON in the [`examples/`](./examples/) folder:
+
+| File | Thesis | Rounds | Verdict |
+|------|--------|--------|---------|
+| [`examples/apple_undervalued_run.json`](./examples/apple_undervalued_run.json) | Apple is undervalued at current P/E of 28x given its services growth trajectory | 3 rounds | **MODERATE BUY** — 3:1:1 vote (bull:neutral:bear), PT $205 |
+| [`examples/nvidia_overvalued_run.json`](./examples/nvidia_overvalued_run.json) | NVIDIA is overvalued at 35x forward earnings as AI capex cycle peaks | 3 rounds, tiebreaker invoked | **HOLD / DO NOT INITIATE** — 1:2:2 split, tiebreaker resolved bearish |
+
+The Apple run demonstrates a **moderately contentious debate** (disagreement_score 0.42) where the Risk Analyst starts bearish but revises to neutral after macro tailwind arguments, and the committee converges on a Moderate Buy with position-sizing guidance. The NVIDIA run demonstrates the **tiebreaker path** — agents end 1:2:2 at max rounds (divergence_score 0.61), invoking the TiebreakerAgent which resolves to bearish on asymmetric downside risk.
+
+---
+
 A realistic `CommitteeMemo` produced after a 3-round AAPL debate:
 
 ```json
@@ -551,7 +564,7 @@ A realistic `CommitteeMemo` produced after a 3-round AAPL debate:
     ],
     "total_rounds": 3,
     "total_tokens_used": 34817,
-    "model_used": "ollama/llama2",
+    "model_used": "ollama/llama2:7b",
     "synthesis_quality": "full",
     "created_at": "2025-01-15T14:23:41.882Z"
   },
@@ -700,7 +713,7 @@ All settings are loaded from `.env` via Pydantic-Settings. Copy `.env.example` t
 | Variable                  | Default                                         | Description                                                                   |
 | ------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------- |
 | `OLLAMA_BASE_URL`       | `http://localhost:11434`                      | Ollama server URL for local inference                                         |
-| `DEFAULT_MODEL`         | `ollama/llama2`                               | LiteLLM model string for all agents                                           |
+| `DEFAULT_MODEL`         | `ollama/llama2:7b`                               | LiteLLM model string for all agents                                           |
 | `OPENAI_API_KEY`        | *(empty)*                                     | OpenAI API key (optional — for`gpt-4o`, etc.)                              |
 | `ANTHROPIC_API_KEY`     | *(empty)*                                     | Anthropic API key (optional — for Claude models)                             |
 | `GOOGLE_API_KEY`        | *(empty)*                                     | Google API key (optional — for Gemini models)                                |
@@ -736,6 +749,58 @@ GOOGLE_API_KEY=AIza...
 ```
 
 LiteLLM handles the API translation automatically — the agents remain unchanged regardless of which provider is used.
+
+---
+
+## Future Improvements
+
+### 1. Fine-Tune LLMs per Agent with Reinforcement Learning (GRPO)
+
+Each analyst agent currently uses a general-purpose LLM with a system prompt. The next evolution is to **fine-tune a dedicated model per agent** using **Group Relative Policy Optimisation (GRPO)** — the same RL algorithm used in DeepSeek-R1.
+
+**Approach:**
+- Collect debate traces as training data (thesis, prior context → agent response)
+- Define reward functions per agent persona:
+  - `ValueInvestor`: reward for DCF accuracy vs. actual price outcomes (backtested over 12 months)
+  - `MomentumTrader`: reward for trend call alignment with subsequent price momentum
+  - `RiskAnalyst`: reward for VaR accuracy and drawdown prediction calibration
+  - `MacroEconomist`: reward for macro factor attribution accuracy
+  - `Contrarian`: reward for identifying debates where consensus was wrong
+- Apply GRPO (group sampling + relative reward normalisation) to fine-tune each agent's base model independently
+- Use **LiteLLM's model routing** to swap fine-tuned models into the existing agent classes with zero code changes
+
+**Expected outcome:** Each agent develops a genuine specialisation rather than relying solely on prompt engineering — measurably higher conviction calibration and lower disagreement noise.
+
+### 2. User-Configurable Agents & Multi-Tenant Architecture
+
+Enable users to **customise their own investment committee** and support **multi-tenant deployments** for enterprise use.
+
+**Agent Customisation:**
+- REST API to register custom agents (`POST /api/v1/agents`) with user-defined system prompt, JSON schema, and scoring weights
+- Agent registry stored per-tenant — users can add sector specialists (e.g. `BiotechAnalyst`, `CryptoTrader`, `ESGScreener`)
+- Custom agents participate in the LangGraph debate alongside or instead of default agents
+- UI panel in the React frontend for agent configuration and persona editing
+
+**Multi-Tenant Architecture:**
+- Tenant isolation via JWT-authenticated API with `tenant_id` scoping all resources
+- Per-tenant debate repositories (separate SQLite databases or PostgreSQL schemas)
+- Per-tenant LLM configuration (users bring their own API keys, stored encrypted)
+- Per-tenant budget limits and rate limiting enforced at the API gateway layer
+- Admin dashboard for tenant management, usage analytics, and cost tracking
+
+---
+
+## Prompts Used
+
+The engineering prompts that guided the design, development, and refinement of each commit are documented in [`prompt_used.md`](./prompt_used.md).
+
+| Commit | Message | Prompt Summary |
+|--------|---------|----------------|
+| [`b38b110`](https://github.com/williyam-m/investment_agents/commit/b38b11083c326d0c6cd5d8f55e2f6c5c877f7267) | Ship v1 — 5 agents, CLI, UI | Full system architecture prompt: LangGraph StateGraph, 7 agents, token budget, divergence scorer, FastAPI SSE, React frontend |
+| [`1a4f122`](https://github.com/williyam-m/investment_agents/commit/1a4f1229bc0b4f2af74c5ebb402d21f82401ed0e) | Delete debate API, list view, dark mode | Feature extension prompt: DELETE endpoint, HistoryPanel list view, Tailwind dark mode with localStorage persistence |
+| [`bdfeb1b`](https://github.com/williyam-m/investment_agents/commit/bdfeb1b3ea41b627051b8a5bc51f5e73b3615742) | Minor refactor set-1 | Code quality pass prompt: 6 categories across 17 files — security hardening, perf fixes, error resilience, clarity, UX, dependencies |
+
+See **[`prompt_used.md`](./prompt_used.md)** for the full verbatim prompts with complete tech stack specifications, architecture flows, and engineering constraints.
 
 ---
 

@@ -46,13 +46,11 @@ pip install -e .
 
 ### 5. Pull an Ollama model
 
-The default model is `llama2`. For better results, use `llama3`:
+The default model is `llama2:7b`. For better results or larger context, use `mistral`:
 
 ```bash
-ollama pull llama3
-# or for a smaller/faster model:
-ollama pull llama2
-# or for code/reasoning tasks:
+ollama pull llama2:7b
+# or for a stronger reasoning model:
 ollama pull mistral
 ```
 
@@ -67,7 +65,7 @@ Edit `.env` to set your preferred defaults:
 ```bash
 # .env
 OLLAMA_BASE_URL=http://localhost:11434
-DEFAULT_MODEL=ollama/llama3
+DEFAULT_MODEL=ollama/llama2:7b
 DEFAULT_BUDGET=40000
 DEFAULT_MAX_ROUNDS=3
 LOG_LEVEL=INFO
@@ -97,7 +95,7 @@ python -m investment_agents.cli.main debate \
   --ticker NVDA \
   --budget 30000 \
   --rounds 2 \
-  --model ollama/llama3
+  --model ollama/llama2:7b
 ```
 
 ### Save the full trace to JSON
@@ -114,7 +112,7 @@ python -m investment_agents.cli.main debate \
 ```
 🏛️  Investment Committee Debate
    Thesis : Tesla will capture 30% of the global EV market by 2030
-   Model  : ollama/llama3
+   Model  : ollama/llama2:7b
    Budget : 40,000 tokens  |  Max rounds: 3
 
 Running debate  [####################]  100%
@@ -177,7 +175,7 @@ curl -X POST http://localhost:8000/api/v1/debates \
     },
     "total_budget": 25000,
     "max_rounds": 2,
-    "model_config": { "model": "ollama/llama3", "temperature": 0.7 }
+    "model_config": { "model": "ollama/llama2:7b", "temperature": 0.7 }
   }'
 ```
 
@@ -256,12 +254,12 @@ Error: Connection refused to http://localhost:11434
 ### Model not found
 
 ```
-Error: model 'ollama/llama3' not found
+Error: model 'ollama/llama2:7b' not found
 ```
 
 **Fix**: Pull the model first:
 ```bash
-ollama pull llama3
+ollama pull llama2:7b
 ```
 
 **Check installed models**:
@@ -269,7 +267,7 @@ ollama pull llama3
 ollama list
 ```
 
-Then use the exact model name in your request: `ollama/llama3`, `ollama/llama2`, `ollama/mistral`, etc.
+Then use the exact model name in your request: `ollama/llama2:7b`, `ollama/llama2:7b`, `ollama/mistral`, etc.
 
 ---
 
@@ -291,7 +289,7 @@ Or use a smaller `max_tokens_per_call` in `model_config` (default 1000). For loc
 If agents return HOLD with `"key_argument": "Analysis unavailable — fallback response"`, the LLM is not returning valid JSON.
 
 **Fix options**:
-1. Use a more capable model: `ollama pull llama3:8b-instruct` or `ollama pull mistral`
+1. Use a more capable model: `ollama pull llama2:7b` or `ollama pull mistral`
 2. Lower temperature: `--temperature 0.3`
 3. Check Ollama logs: `journalctl -u ollama` or terminal output
 
@@ -343,5 +341,5 @@ pip install sentence-transformers
 | List saved debates | `python -m investment_agents.cli.main list-debates` |
 | Run tests | `pytest` |
 | Check Ollama models | `ollama list` |
-| Pull llama3 | `ollama pull llama3` |
+| Pull llama2:7b | `ollama pull llama2:7b` |
 | API health check | `curl http://localhost:8000/api/v1/health` |

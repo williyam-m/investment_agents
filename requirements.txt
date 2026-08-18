@@ -12,6 +12,7 @@ typer[all]>=0.12.0
 python-dotenv>=1.0.0
 numpy>=1.26.0
 scikit-learn>=1.4.0
+slowapi>=0.1.9
 
 # Optional: semantic divergence scoring (recommended)
 sentence-transformers>=3.0.0

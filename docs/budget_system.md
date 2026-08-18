@@ -161,9 +161,21 @@ momentum_trader: int(5000 * 2/15) = 666 tokens
 macro_economist: int(5000 * 1/15) = 333 tokens → bumped to MIN=400
 ```
 
+### Named Constants
+
+```python
+# budget/allocator.py
+AGENT_FRACTION     = 0.85   # 85% of available budget goes to analyst agents
+SYNTHESIS_FRACTION = 0.10   # 10% reserved for synthesis agent
+BUFFER_FRACTION    = 0.05   # 5% held as safety buffer
+MIN_TOKENS         = 200    # Hard floor — no agent ever receives fewer than 200 tokens
+```
+
+These constants are used internally by `allocate_round()` and can be adjusted directly in `budget/allocator.py`.
+
 ### Minimum Agent Token Guard
 
-`MIN_AGENT_TOKENS = 400`. No agent ever receives fewer than 400 tokens per round, regardless of their weight. If weighted allocations would sum beyond available tokens due to minimums, they are scaled down proportionally while keeping minimums.
+`MIN_TOKENS = 200`. No agent ever receives fewer than 200 tokens per round, regardless of weight or budget constraints. If weighted allocations would sum beyond available tokens due to minimums, they are scaled down proportionally. If total budget is zero or negative, `BudgetAllocator.__init__` raises `ValueError` immediately. If all exploit weights resolve to zero, the allocator falls back to equal split automatically.
 
 ---
 
@@ -377,3 +389,4 @@ FINAL BUDGET REPORT:
 ```
 
 Note: Actual token consumption depends heavily on the LLM model, response length, and thesis complexity. Local Llama 3 models typically use 600–900 tokens per agent per round. Cloud models (GPT-4o, Claude) may use similar or more depending on temperature and `max_tokens_per_call` settings.
+

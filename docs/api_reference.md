@@ -4,6 +4,17 @@ Base URL: `http://localhost:8000/api/v1`
 
 All request bodies are JSON. All successful responses are JSON unless noted as SSE.
 
+## Endpoints Summary
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/debates` | Start a new debate — returns full `DebateTrace` |
+| `GET` | `/api/v1/debates/{debate_id}` | Retrieve a stored debate by ID |
+| `GET` | `/api/v1/debates/{debate_id}/stream` | Server-Sent Events stream for a debate |
+| `DELETE` | `/api/v1/debates/{debate_id}` | Delete a debate trace by ID |
+| `GET` | `/api/v1/debates` | List recent debates |
+| `GET` | `/api/v1/health` | Health check |
+
 ---
 
 ## POST /api/v1/debates
@@ -38,7 +49,7 @@ Content-Type: application/json
   "total_budget": 40000,
   "max_rounds": 3,
   "model_config": {
-    "model": "ollama/llama3",
+    "model": "ollama/llama2:7b",
     "temperature": 0.7,
     "max_tokens_per_call": 1000,
     "ollama_base_url": "http://localhost:11434"
@@ -62,7 +73,7 @@ Content-Type: application/json
 | `investment_context.relevant_documents` | string[] | ❌ | `[]` | Text snippets for agent context |
 | `total_budget` | integer | ❌ | 40000 | Total token budget for debate |
 | `max_rounds` | integer | ❌ | 3 | Max debate rounds (1–5) |
-| `model_config.model` | string | ❌ | `"ollama/llama2"` | LiteLLM model string |
+| `model_config.model` | string | ❌ | `"ollama/llama2:7b"` | LiteLLM model string |
 | `model_config.temperature` | float | ❌ | 0.7 | Sampling temperature (0.0–2.0) |
 | `model_config.max_tokens_per_call` | integer | ❌ | 1000 | Max tokens per individual LLM call |
 | `model_config.ollama_base_url` | string | ❌ | `"http://localhost:11434"` | Ollama server URL |
@@ -77,7 +88,7 @@ Returns a complete `DebateTrace` object.
   "debate_id": "3f2a1b4c-8d7e-4f9a-b2c1-1234567890ab",
   "thesis": "Apple Inc. is significantly undervalued...",
   "investment_context": { "ticker": "AAPL", "..." : "..." },
-  "model_used": "ollama/llama3",
+  "model_used": "ollama/llama2:7b",
   "rounds": [
     {
       "round_number": 1,
@@ -233,7 +244,7 @@ Emitted once at the beginning of the debate.
     "thesis": "Apple Inc. is significantly undervalued...",
     "total_budget": 40000,
     "max_rounds": 3,
-    "model": "ollama/llama3"
+    "model": "ollama/llama2:7b"
   }
 }
 ```
@@ -412,6 +423,32 @@ Emitted when an unrecoverable error occurs.
 
 ---
 
+## DELETE /api/v1/debates/{id}
+
+Delete a debate trace by its ID. Added in commit `1a4f122`.
+
+### Request
+
+```
+DELETE /api/v1/debates/3f2a1b4c-8d7e-4f9a-b2c1-1234567890ab
+```
+
+### Response — 204 No Content
+
+Successfully deleted. No body returned.
+
+### Response — 404 Not Found
+
+```json
+{
+  "detail": "Debate '3f2a1b4c-8d7e-4f9a-b2c1-1234567890ab' not found."
+}
+```
+
+> **Security note (added in `bdfeb1b`):** The `debate_id` is validated as a proper UUID format before any file I/O. Malformed IDs return 404 immediately — preventing path-traversal attacks.
+
+---
+
 ## GET /api/v1/debates
 
 List recent debates (newest first). Returns summary objects, not full traces.
@@ -507,3 +544,6 @@ For validation errors (422):
 - To run a debate and watch it live: first `POST /debates` (which saves the debate_id), then `GET /debates/{id}/stream` from a second client, or use the streaming-first pattern via the React frontend.
 - `debate_id` values are UUIDs by default. Custom IDs are accepted if they are unique strings.
 - Token counts in responses are real LiteLLM-reported values, not estimates.
+- `DELETE /api/v1/debates/{id}` returns `204 No Content` on success and `404` if the ID is not found.
+- `debate_id` path parameters are validated as proper UUIDs before any file I/O — malformed IDs return `404` immediately to prevent path-traversal.
+- See [`../examples/`](../examples/) for two complete debate trace JSON files: [`apple_undervalued_run.json`](../examples/apple_undervalued_run.json) and [`nvidia_overvalued_run.json`](../examples/nvidia_overvalued_run.json).

@@ -8,10 +8,15 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from investment_agents.api.routes.debate import router as debate_router
 from investment_agents.api.routes.health import router as health_router
 from investment_agents.config.settings import get_settings
+from investment_agents.orchestrator.graph import DebateOrchestrator
+from investment_agents.storage.repository import DebateRepository
 
 
 def configure_logging() -> None:
@@ -38,18 +43,23 @@ def configure_logging() -> None:
     )
 
 
+limiter = Limiter(key_func=get_remote_address)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan — startup / shutdown logic."""
     configure_logging()
     log = structlog.get_logger(__name__)
+    app.state.repo = DebateRepository()
+    app.state.orchestrator = DebateOrchestrator()
     log.info("app.startup", title=app.title, version=app.version)
     yield
     log.info("app.shutdown")
 
 
 # ── Application instance ───────────────────────────────────────────────────
-app = FastAPI(
+app = FastAPI(  # noqa: E501
     title="Investment Committee Debate API",
     version="1.0.0",
     description=(
@@ -60,6 +70,9 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Middleware ─────────────────────────────────────────────────────────────
 # allow_origins=["*"] + allow_credentials=True is a CORS spec violation.

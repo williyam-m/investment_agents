@@ -46,7 +46,7 @@ def test_debate_request_defaults():
     assert req.max_rounds == 3
 
 def test_stream_event_debate_started():
-    event = StreamEvent.debate_started("abc123", "Test thesis", 40000, 3, "ollama/llama2")
+    event = StreamEvent.debate_started("abc123", "Test thesis", 40000, 3, "ollama/llama2:7b")
     assert event.type == StreamEventType.DEBATE_STARTED
     assert event.debate_id == "abc123"
     sse = event.to_sse_dict()

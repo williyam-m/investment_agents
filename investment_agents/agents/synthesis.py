@@ -9,7 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 
-from investment_agents.agents.base import BaseAnalystAgent
+from investment_agents.agents.base import AgentUtilsMixin
+from investment_agents.llm.client import LLMClient
+from investment_agents.config.settings import Settings, get_settings
 from investment_agents.models.agent_output import AgentType, AnalystOutput, Recommendation
 from investment_agents.models.divergence import ConflictPoint
 from investment_agents.models.synthesis import CommitteeMemo, DissentingView, ReasoningStep
@@ -56,26 +58,19 @@ Acknowledge dissent. Be honest about uncertainty.
 Always respond with valid JSON only."""
 
 
-class SynthesisAgent(BaseAnalystAgent):
+class SynthesisAgent(AgentUtilsMixin):
     """
     Investment committee chair: synthesizes all debate outputs into a final CommitteeMemo.
 
-    This agent has a distinct interface from the other analyst agents:
-    instead of `analyze()` it exposes `analyze_debate()` which takes the
-    full list of AnalystOutputs and ConflictPoints and returns a CommitteeMemo.
+    Uses AgentUtilsMixin for shared parsing utilities. Does not inherit BaseAnalystAgent
+    because its interface (analyze_debate) is distinct from the standard analyze() loop.
     """
 
-    @property
-    def agent_type(self) -> AgentType:
-        return AgentType.SYNTHESIS
-
-    @property
-    def system_prompt(self) -> str:
-        return SYSTEM
-
-    @property
-    def json_schema_description(self) -> str:
-        return SCHEMA
+    def __init__(self, llm_client: LLMClient, settings: Optional[Settings] = None) -> None:
+        self.llm = llm_client
+        self.settings = settings or get_settings()
+        self.system_prompt: str = SYSTEM
+        self.json_schema_description: str = SCHEMA
 
     # ------------------------------------------------------------------
     # Primary interface
@@ -218,8 +213,8 @@ class SynthesisAgent(BaseAnalystAgent):
                         why_not_adopted=self._safe_str(dv.get("why_not_adopted", ""), max_len=300),
                     )
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("synthesis.parse_dissenting_view_failed", error=str(exc))
 
         # Reasoning trace
         reasoning_trace: List[ReasoningStep] = []
@@ -233,10 +228,9 @@ class SynthesisAgent(BaseAnalystAgent):
                         output_summary=self._safe_str(step.get("output_summary", ""), max_len=300),
                     )
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("synthesis.parse_reasoning_step_failed", error=str(exc))
 
-        # Derive total rounds from data we have
         return CommitteeMemo(
             final_recommendation=final_rec,
             conviction=conviction,
@@ -251,26 +245,10 @@ class SynthesisAgent(BaseAnalystAgent):
             committee_divided=committee_divided,
             dissenting_views=dissenting_views,
             reasoning_trace=reasoning_trace,
-            total_rounds=int(data.get("total_rounds", 0)),
+            total_rounds=total_rounds,
             total_tokens_used=total_tokens,
             model_used=model,
             synthesis_quality="full",
-        )
-
-    # ------------------------------------------------------------------
-    # _parse_output: required by BaseAnalystAgent but not used here.
-    # SynthesisAgent exposes analyze_debate() instead of analyze().
-    # ------------------------------------------------------------------
-
-    def _parse_output(
-        self,
-        data: Dict[str, Any],
-        round_number: int,
-        tokens_used: int,
-        tokens_allocated: int,
-    ) -> AnalystOutput:  # pragma: no cover
-        raise NotImplementedError(
-            "SynthesisAgent does not use _parse_output. Use analyze_debate() instead."
         )
 
     # ------------------------------------------------------------------

@@ -25,7 +25,6 @@ const EXAMPLE_THESES = [
 
 const MODELS = [
   { value: 'ollama/llama2:7b',         label: 'Llama 2 7B (Local)', emoji: '🦙' },
-  { value: 'ollama/llama3',            label: 'Llama 3 (Local)',   emoji: '🦙' },
   { value: 'ollama/mistral',           label: 'Mistral (Local)',   emoji: '🦙' },
   { value: 'gpt-4o-mini',             label: 'GPT-4o Mini',       emoji: '🤖' },
   { value: 'gpt-4o',                  label: 'GPT-4o',            emoji: '🤖' },

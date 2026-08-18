@@ -4,7 +4,7 @@ Synthesis data models — final committee memo output.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -99,7 +99,7 @@ class CommitteeMemo(BaseModel):
     total_rounds: int
     total_tokens_used: int
     model_used: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     synthesis_quality: str = Field(
         default="full",
         description="full | partial | degraded (based on available data)"

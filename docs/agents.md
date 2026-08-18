@@ -455,3 +455,29 @@ Create `tests/unit/test_technical_analyst.py` following the pattern in `tests/te
 | `tokens_allocated` | int | Budget allocated to this agent for this round |
 | `model_used` | string | LiteLLM model string used |
 | `created_at` | datetime | UTC timestamp |
+
+---
+
+## CommitteeMemo — Field Reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `final_recommendation` | `Recommendation` | Committee's final vote verdict |
+| `conviction` | float [0,1] | Weighted average conviction across agents |
+| `vote_breakdown` | dict | `{buy: N, hold: N, sell: N}` |
+| `executive_summary` | string | 2–4 sentence summary |
+| `key_thesis` | string | Core investment thesis restated by chair |
+| `bull_case` | string | Strongest arguments for the thesis |
+| `bear_case` | string | Strongest arguments against |
+| `key_risks` | string[] | Top risks identified across all agents |
+| `catalysts_to_watch` | string[] | Upcoming events that could shift the verdict |
+| `debate_was_contentious` | bool | True if `disagreement_score > 0.45` |
+| `committee_divided` | bool | True if no clear majority |
+| `dissenting_views` | `DissentingView[]` | Minority positions with explanations |
+| `reasoning_trace` | `ReasoningStep[]` | Step-by-step synthesis log |
+| `synthesis_quality` | `"full" \| "degraded" \| "empty"` | Quality of the synthesis output (added in refactor set-1) |
+| `total_rounds` | int | Number of completed debate rounds |
+| `total_tokens_used` | int | Total token spend across all agents |
+| `model_used` | string | LiteLLM model string |
+| `created_at` | datetime | UTC timestamp |
+

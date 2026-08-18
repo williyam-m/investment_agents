@@ -348,6 +348,7 @@ if divergence_report.has_hard_conflicts
 | `POST` | `/api/v1/debates` | Start debate, returns `DebateTrace` |
 | `GET` | `/api/v1/debates/{id}` | Retrieve completed debate by ID |
 | `GET` | `/api/v1/debates/{id}/stream` | SSE stream of debate events |
+| `DELETE` | `/api/v1/debates/{id}` | Delete a debate trace; `204 No Content` / `404` |
 | `GET` | `/api/v1/debates` | List recent debates (summary) |
 | `GET` | `/api/v1/health` | Health check |
 
@@ -369,7 +370,7 @@ See `docs/api_reference.md` for full schemas and examples.
 ### Swapping LLMs
 
 1. Change `OLLAMA_BASE_URL` and `DEFAULT_MODEL` in `.env`.
-2. LiteLLM provider strings: `ollama/llama3`, `gpt-4o`, `anthropic/claude-3-5-sonnet-20241022`, `groq/llama3-8b-8192`.
+2. LiteLLM provider strings: `ollama/llama2:7b`, `gpt-4o`, `anthropic/claude-3-5-sonnet-20241022`, `groq/llama3-8b-8192`.
 3. Per-debate override: set `model_config.model` in `DebateRequest`.
 
 ### Plugging in a Database
@@ -405,3 +406,4 @@ TIEBREAKER_MIN_BUDGET=3000
 DEFAULT_BUDGET=40000
 DEFAULT_MAX_ROUNDS=3
 ```
+

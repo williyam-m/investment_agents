@@ -5,7 +5,7 @@ Token budget is a first-class primitive — tracked at every LLM call.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -66,7 +66,7 @@ class BudgetDecision(BaseModel):
     allocations: Dict[str, int]  # agent_type → tokens
     reasoning: str = Field(..., description="Why this allocation was chosen")
     divergence_score: Optional[float] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class BudgetReport(BaseModel):

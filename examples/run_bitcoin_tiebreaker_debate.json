@@ -1,0 +1,667 @@
+{
+  "debate_id": "a9e4c72b-1f3d-4a88-b561-0d7e2f8c3a15",
+  "thesis": "Bitcoin is a generational store-of-value asset that should replace gold allocation in institutional portfolios over the next decade",
+  "status": "complete",
+  "started_at": "2026-08-18T09:30:00.000000+00:00",
+  "completed_at": "2026-08-18T09:31:22.841903+00:00",
+  "total_rounds_completed": 3,
+  "budget_state": {
+    "total_budget": 80000,
+    "tokens_spent": 76891,
+    "tokens_remaining": 3109,
+    "mode": "exploit",
+    "round_allocations": [
+      {
+        "round": 1,
+        "mode": "explore",
+        "allocations": {
+          "value_investor": 7800,
+          "momentum_trader": 8100,
+          "risk_analyst": 7950,
+          "macro_economist": 8050,
+          "contrarian": 7900
+        }
+      },
+      {
+        "round": 2,
+        "mode": "explore",
+        "allocations": {
+          "value_investor": 6200,
+          "momentum_trader": 6400,
+          "risk_analyst": 6300,
+          "macro_economist": 6500,
+          "contrarian": 6300
+        }
+      },
+      {
+        "round": 3,
+        "mode": "exploit",
+        "allocations": {
+          "value_investor": 3200,
+          "momentum_trader": 5800,
+          "risk_analyst": 3100,
+          "macro_economist": 5900,
+          "contrarian": 4891
+        }
+      }
+    ]
+  },
+  "tiebreaker_activated": true,
+  "rounds": [
+    {
+      "round_number": 1,
+      "divergence_score": 0.81,
+      "convergence_score": 0.19,
+      "mode": "explore",
+      "agent_outputs": [
+        {
+          "agent_type": "value_investor",
+          "agent_name": "Value Investor",
+          "round_number": 1,
+          "recommendation": "sell",
+          "conviction_score": 0.78,
+          "numeric_score": -0.72,
+          "thesis_agreement": "Bitcoin has no intrinsic value by any fundamental framework; it generates no cash flows, pays no dividends, and cannot be valued by DCF",
+          "key_argument": "A Benjamin Graham value investor cannot assign intrinsic value to an asset with zero cash flows and no earnings; Bitcoin's only valuation framework is the greater fool theory — the next buyer paying more — which is indistinguishable from speculative mania; gold at least has industrial use; BTC is pure narrative",
+          "supporting_evidence": [
+            {
+              "claim": "Bitcoin generates $0 in cash flows, earnings, or dividends",
+              "source_type": "fundamental_analysis",
+              "confidence": 1.0,
+              "supports_thesis": false
+            },
+            {
+              "claim": "No DCF-compatible valuation framework exists for BTC",
+              "source_type": "academic_research",
+              "confidence": 0.95,
+              "supports_thesis": false
+            },
+            {
+              "claim": "Historical speculative manias (tulips, dot-com) share BTC narrative structure",
+              "source_type": "historical_data",
+              "confidence": 0.65,
+              "supports_thesis": false
+            }
+          ],
+          "agent_specific_analysis": {
+            "fair_value_estimate": "indeterminate (no cash flow basis)",
+            "moat_strength": "none — digital assets are replicable",
+            "pe_assessment": "N/A — no earnings"
+          },
+          "tokens_used": 7632,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "momentum_trader",
+          "agent_name": "Momentum Trader",
+          "round_number": 1,
+          "recommendation": "buy",
+          "conviction_score": 0.83,
+          "numeric_score": 0.76,
+          "thesis_agreement": "BTC is in a confirmed macro uptrend with 4-year halving cycle tailwind and institutional adoption momentum",
+          "key_argument": "BTC broke out of a multi-year base in Q4 2024, confirmed by the 4th halving in April 2024 which reduced supply issuance by 50%; price is above all major MAs, weekly RSI at 62 (room to run), and ETF inflows of $15B+ signal institutional momentum that historically sustains 12-18 months post-halving",
+          "supporting_evidence": [
+            {
+              "claim": "4th halving April 2024: block reward halved from 6.25 to 3.125 BTC",
+              "source_type": "blockchain_data",
+              "confidence": 1.0,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Spot BTC ETF inflows: $15.2B in first 12 months (IBIT, FBTC, ARKB)",
+              "source_type": "market_data",
+              "confidence": 0.97,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Post-halving historical returns: +295% (2012), +1,336% (2016), +576% (2020)",
+              "source_type": "historical_data",
+              "confidence": 0.91,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "trend_strength": "strong",
+            "rsi_14": 62.4,
+            "macd_signal": "bullish",
+            "halving_cycle_position": "~14 months post-halving (mid-cycle)",
+            "etf_flow_trend": "positive — $15.2B cumulative inflows"
+          },
+          "tokens_used": 7984,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "risk_analyst",
+          "agent_name": "Risk Analyst",
+          "round_number": 1,
+          "recommendation": "hold",
+          "conviction_score": 0.65,
+          "numeric_score": -0.10,
+          "thesis_agreement": "The store-of-value thesis is plausible but the risk profile makes a large institutional allocation inappropriate without strict position sizing",
+          "key_argument": "BTC's 30-day realized volatility of 58% annualized is 4x gold's 14% — a 5% BTC allocation creates the same portfolio volatility impact as a 20% gold allocation; at Kelly optimal sizing BTC should be no more than 2-3% of institutional portfolio; the correlation to risk assets during crisis periods (March 2020: -50% in 12 days) disqualifies it as a pure safe haven",
+          "supporting_evidence": [
+            {
+              "claim": "BTC 30-day realized vol: 58% annualized vs gold 14%",
+              "source_type": "quantitative_model",
+              "confidence": 0.95,
+              "supports_thesis": false
+            },
+            {
+              "claim": "March 2020: BTC -50% in 12 days, correlated with equities drawdown",
+              "source_type": "historical_data",
+              "confidence": 0.99,
+              "supports_thesis": false
+            },
+            {
+              "claim": "BTC-SPX correlation in tail events: 0.72 (not a hedge)",
+              "source_type": "quantitative_model",
+              "confidence": 0.88,
+              "supports_thesis": false
+            }
+          ],
+          "agent_specific_analysis": {
+            "var_95_30d": "-45%",
+            "kelly_fraction": "0.04 (recommend 2-3% of portfolio max)",
+            "correlation_to_gold_crisis": "negative — they diverge in crises",
+            "tail_risk_rating": "very high"
+          },
+          "tokens_used": 7841,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "macro_economist",
+          "agent_name": "Macro Economist",
+          "round_number": 1,
+          "recommendation": "buy",
+          "conviction_score": 0.75,
+          "numeric_score": 0.58,
+          "thesis_agreement": "Macro environment of fiscal dominance, sovereign debt stress, and dollar debasement creates a structural tailwind for hard-cap monetary assets",
+          "key_argument": "Global sovereign debt is at 102% of GDP (IMF 2026), the US deficit is running at 6.5% of GDP with no political will for consolidation, and M2 money supply has expanded 42% since 2020 — in this environment Bitcoin's fixed 21M supply cap is a genuine macro hedge against fiat debasement, similar to gold's role in the 1970s but with superior portability and divisibility",
+          "supporting_evidence": [
+            {
+              "claim": "Global sovereign debt: 102% of GDP (IMF World Economic Outlook 2026)",
+              "source_type": "macroeconomic_data",
+              "confidence": 0.93,
+              "supports_thesis": true
+            },
+            {
+              "claim": "US M2 +42% since Jan 2020 ($15.4T to $21.8T)",
+              "source_type": "federal_reserve_data",
+              "confidence": 0.97,
+              "supports_thesis": true
+            },
+            {
+              "claim": "El Salvador, UAE sovereign wealth funds allocating to BTC",
+              "source_type": "government_policy",
+              "confidence": 0.89,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "rate_environment": "fiscal dominance era — rates structurally higher than pre-2020",
+            "dollar_debasement_risk": "elevated",
+            "sovereign_adoption_trajectory": "accelerating"
+          },
+          "tokens_used": 7912,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "contrarian",
+          "agent_name": "Contrarian",
+          "round_number": 1,
+          "recommendation": "sell",
+          "conviction_score": 0.71,
+          "numeric_score": -0.62,
+          "thesis_agreement": "The institutional adoption narrative is the bull consensus; the real contrarian risk is regulatory fragmentation destroying the thesis",
+          "key_argument": "When 90% of institutional investors are now bullish on BTC (survey data), the contrarian trade is short — extreme consensus optimism has historically preceded 60-80% drawdowns (2017-2018: -83%, 2021-2022: -77%); additionally the EU MiCA regulation and potential US stablecoin/exchange restrictions create regulatory fragmentation risk that could shatter the 'reserve asset' narrative overnight",
+          "supporting_evidence": [
+            {
+              "claim": "2017-2018 cycle: BTC -83% from peak after retail FOMO peak",
+              "source_type": "historical_data",
+              "confidence": 0.99,
+              "supports_thesis": true
+            },
+            {
+              "claim": "2021-2022 cycle: BTC -77% from $69K peak over 12 months",
+              "source_type": "historical_data",
+              "confidence": 0.99,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Institutional sentiment surveys: 88% bullish (highest reading since 2021 peak)",
+              "source_type": "market_survey",
+              "confidence": 0.81,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "consensus_risk": "very high — 88% institutional bullish",
+            "regulatory_risk": "high — MiCA, US stablecoin bills, exchange KYC requirements",
+            "cycle_drawdown_risk": "60-80% drawdown historically at peak consensus"
+          },
+          "tokens_used": 7631,
+          "position_changed": false,
+          "position_change_reason": null
+        }
+      ],
+      "conflict_points": [
+        {
+          "agent_a": "momentum_trader",
+          "agent_b": "value_investor",
+          "recommendation_a": "buy",
+          "recommendation_b": "sell",
+          "argument_a_excerpt": "ETF inflows of $15B+ signal institutional momentum that historically sustains 12-18 months post-halving",
+          "argument_b_excerpt": "Bitcoin's only valuation framework is the greater fool theory — indistinguishable from speculative mania",
+          "conflict_type": "fundamental"
+        },
+        {
+          "agent_a": "macro_economist",
+          "agent_b": "contrarian",
+          "recommendation_a": "buy",
+          "recommendation_b": "sell",
+          "argument_a_excerpt": "Fixed 21M supply cap is a genuine macro hedge against fiat debasement — similar to gold in the 1970s",
+          "argument_b_excerpt": "88% institutional bullish — extreme consensus that has historically preceded 60-80% drawdowns",
+          "conflict_type": "directional"
+        },
+        {
+          "agent_a": "macro_economist",
+          "agent_b": "risk_analyst",
+          "recommendation_a": "buy",
+          "recommendation_b": "hold",
+          "argument_a_excerpt": "Sovereign debt at 102% GDP creates structural tailwind for hard-cap monetary assets",
+          "argument_b_excerpt": "BTC-SPX correlation of 0.72 in tail events disqualifies it as a safe haven",
+          "conflict_type": "thesis_interpretation"
+        }
+      ]
+    },
+    {
+      "round_number": 2,
+      "divergence_score": 0.73,
+      "convergence_score": 0.27,
+      "mode": "explore",
+      "agent_outputs": [
+        {
+          "agent_type": "value_investor",
+          "agent_name": "Value Investor",
+          "round_number": 2,
+          "recommendation": "sell",
+          "conviction_score": 0.72,
+          "numeric_score": -0.60,
+          "thesis_agreement": "Maintaining sell — the 'digital gold' narrative still lacks any fundamental cash flow basis",
+          "key_argument": "The macro debasement argument is interesting but gold has served this role for 5,000 years with 0% failure rate; BTC has 15 years of history with 3 complete speculative cycles each exceeding -75% drawdown; an institutional portfolio should use actual gold for currency debasement hedging and not bet on a new unproven asset class replacing it",
+          "supporting_evidence": [
+            {
+              "claim": "Gold: 5,000-year store of value track record with 0 'failure' events",
+              "source_type": "historical_data",
+              "confidence": 0.99,
+              "supports_thesis": false
+            },
+            {
+              "claim": "BTC: 3 complete cycles, each with >75% peak-to-trough drawdown",
+              "source_type": "historical_data",
+              "confidence": 0.99,
+              "supports_thesis": false
+            }
+          ],
+          "agent_specific_analysis": {
+            "fair_value_estimate": "indeterminate",
+            "moat_strength": "narrow — 1st mover advantage only",
+            "gold_replacement_probability": "5% over 10-year horizon"
+          },
+          "tokens_used": 6021,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "momentum_trader",
+          "agent_name": "Momentum Trader",
+          "round_number": 2,
+          "recommendation": "buy",
+          "conviction_score": 0.80,
+          "numeric_score": 0.72,
+          "thesis_agreement": "Cycle analysis confirms we are in mid-bull phase; contrarian's consensus risk argument is valid but premature",
+          "key_argument": "The halving cycle model has 4 phases (accumulation, breakout, parabolic, correction); we entered breakout phase 6 months ago and historically mid-phase lasts 12-18 months; RSI has not yet reached the 80+ overbought readings seen at prior cycle peaks; the consensus is bullish but price structure doesn't show the euphoria exhaustion pattern yet",
+          "supporting_evidence": [
+            {
+              "claim": "Current weekly RSI: 64 vs prior cycle peaks of 88-92",
+              "source_type": "technical_indicator",
+              "confidence": 0.97,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Futures funding rate: 0.02%/8hr (neutral — not overheated)",
+              "source_type": "derivatives_data",
+              "confidence": 0.93,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "cycle_phase": "breakout (mid-phase)",
+            "rsi_14": 64.1,
+            "funding_rate": "0.02%/8hr (neutral)",
+            "estimated_cycle_peak": "Q2-Q3 2027 (model range)"
+          },
+          "tokens_used": 6289,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "risk_analyst",
+          "agent_name": "Risk Analyst",
+          "round_number": 2,
+          "recommendation": "hold",
+          "conviction_score": 0.68,
+          "numeric_score": -0.05,
+          "thesis_agreement": "Maintaining hold — position sizing is the critical variable; a 2-3% allocation is defensible for most institutional mandates",
+          "key_argument": "The debate is not whether to own BTC but how much — a 2-3% allocation sized at Kelly-optimal levels is appropriate for large institutional portfolios given the asymmetric upside vs downside; beyond 3% the portfolio-level VaR impact becomes dominant; I recommend a 2% starter position with a predetermined rebalancing band of 1-5%",
+          "supporting_evidence": [
+            {
+              "claim": "2% BTC allocation: portfolio VaR impact equivalent to 8% gold allocation",
+              "source_type": "quantitative_model",
+              "confidence": 0.90,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Sharpe ratio of a 60/40 + 2% BTC portfolio: +0.08 vs pure 60/40",
+              "source_type": "backtested_model",
+              "confidence": 0.82,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "recommended_allocation": "2% initial, 1-5% rebalancing band",
+            "portfolio_var_impact": "equivalent to 8% gold position",
+            "sharpe_improvement": "+0.08 vs 60/40 baseline"
+          },
+          "tokens_used": 6181,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "macro_economist",
+          "agent_name": "Macro Economist",
+          "round_number": 2,
+          "recommendation": "buy",
+          "conviction_score": 0.79,
+          "numeric_score": 0.62,
+          "thesis_agreement": "Strengthening buy conviction — sovereign wealth fund adoption is accelerating faster than consensus expects",
+          "key_argument": "Since Round 1, the Norwegian Government Pension Fund (largest in world at $1.7T) disclosed indirect BTC exposure through MicroStrategy equity holdings; this is the leading indicator for direct allocation within 2-3 years; once one top-10 sovereign wealth fund makes a direct allocation, fiduciary cover exists for all others — a textbook network effect in institutional adoption",
+          "supporting_evidence": [
+            {
+              "claim": "Norway GPFG ($1.7T): indirect BTC exposure via MicroStrategy equity",
+              "source_type": "regulatory_filing",
+              "confidence": 0.92,
+              "supports_thesis": true
+            },
+            {
+              "claim": "Abu Dhabi sovereign fund: direct BTC ETF allocation disclosed",
+              "source_type": "government_disclosure",
+              "confidence": 0.88,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "sovereign_adoption_stage": "early — <5% of SWFs have direct exposure",
+            "network_effect_catalyst": "first G7 sovereign direct allocation (est. 2027-2028)",
+            "total_institutional_wallet": "$15T+ potential demand vs $2T BTC market cap"
+          },
+          "tokens_used": 6389,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "contrarian",
+          "agent_name": "Contrarian",
+          "round_number": 2,
+          "recommendation": "sell",
+          "conviction_score": 0.66,
+          "numeric_score": -0.52,
+          "thesis_agreement": "Slightly reducing conviction — the sovereign adoption data is more compelling than I expected",
+          "key_argument": "The Norway GPFG data is meaningful but indirect exposure via MSTR equity is not the same as direct allocation — it is a byproduct of MSTR being in equity indices, not a deliberate BTC mandate; I maintain sell but reduce conviction because the regulatory risk is the key variable: if the US passes clear crypto property rights legislation in 2026, I would flip to hold",
+          "supporting_evidence": [
+            {
+              "claim": "Norway GPFG MSTR exposure: passive index replication, not deliberate BTC bet",
+              "source_type": "fund_prospectus",
+              "confidence": 0.85,
+              "supports_thesis": true
+            },
+            {
+              "claim": "US Digital Asset Bill: stalled in Senate since Q1 2026",
+              "source_type": "legislative_tracker",
+              "confidence": 0.88,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "regulatory_catalyst": "US Digital Asset Property Rights Act (stalled Q1 2026)",
+            "flip_condition": "clear US regulatory framework → would move to hold",
+            "sovereign_adoption_discount": "indirect exposure ≠ direct mandate"
+          },
+          "tokens_used": 6211,
+          "position_changed": false,
+          "position_change_reason": null
+        }
+      ],
+      "conflict_points": [
+        {
+          "agent_a": "macro_economist",
+          "agent_b": "value_investor",
+          "recommendation_a": "buy",
+          "recommendation_b": "sell",
+          "argument_a_excerpt": "Sovereign wealth fund adoption is accelerating — once one G7 SWF makes direct allocation, fiduciary cover exists for all others",
+          "argument_b_excerpt": "Gold has served currency debasement hedging role for 5,000 years; BTC has 15 years with 3 cycles of >75% drawdown",
+          "conflict_type": "fundamental"
+        },
+        {
+          "agent_a": "momentum_trader",
+          "agent_b": "contrarian",
+          "recommendation_a": "buy",
+          "recommendation_b": "sell",
+          "argument_a_excerpt": "RSI at 64 vs prior cycle peaks of 88-92 — mid-cycle, not exhaustion",
+          "argument_b_excerpt": "88% institutional bullish is the highest reading since the 2021 peak which preceded -77% drawdown",
+          "conflict_type": "directional"
+        }
+      ]
+    },
+    {
+      "round_number": 3,
+      "divergence_score": 0.65,
+      "convergence_score": 0.35,
+      "mode": "exploit",
+      "tiebreaker_invoked": true,
+      "agent_outputs": [
+        {
+          "agent_type": "value_investor",
+          "agent_name": "Value Investor",
+          "round_number": 3,
+          "recommendation": "sell",
+          "conviction_score": 0.68,
+          "numeric_score": -0.55,
+          "thesis_agreement": "Final position: sell — no fundamental basis for gold replacement thesis at institutional scale",
+          "key_argument": "After 3 rounds I remain convinced that institutional fiduciaries cannot allocate to an asset with no cash flows in meaningful size without violating prudent investor standards in most jurisdictions; the gold replacement thesis requires a 10-year track record of low-volatility store of value — BTC has not demonstrated this",
+          "supporting_evidence": [
+            {
+              "claim": "ERISA prudent investor standard: requires reasonable expectation of return from asset characteristics, not price appreciation alone",
+              "source_type": "regulatory_framework",
+              "confidence": 0.85,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "final_stance": "sell with high conviction",
+            "gold_replacement_probability_10yr": "10% (revised up from 5%)"
+          },
+          "tokens_used": 3144,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "momentum_trader",
+          "agent_name": "Momentum Trader",
+          "round_number": 3,
+          "recommendation": "buy",
+          "conviction_score": 0.85,
+          "numeric_score": 0.78,
+          "thesis_agreement": "Final position: strong buy for a 12-18 month cyclical trade aligned with halving cycle",
+          "key_argument": "The debate conflates two timeframes: a 10-year gold-replacement thesis (which is uncertain) vs a 12-18 month cyclical momentum trade (which is high-conviction); as a momentum trader I am buying the 12-18 month cycle, not making a 10-year macro prediction",
+          "supporting_evidence": [
+            {
+              "claim": "Post-halving 12-month median return: +285% across all 4 halvings",
+              "source_type": "historical_data",
+              "confidence": 0.88,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "trade_horizon": "12-18 months (cyclical, not structural)",
+            "cycle_target": "$180,000-$250,000 (based on prior cycle multiples)"
+          },
+          "tokens_used": 5712,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "risk_analyst",
+          "agent_name": "Risk Analyst",
+          "round_number": 3,
+          "recommendation": "hold",
+          "conviction_score": 0.70,
+          "numeric_score": 0.05,
+          "thesis_agreement": "Final: hold with 2% allocation — neither the bear nor bull case is decisive enough to warrant extreme positioning",
+          "key_argument": "The committee is at an impasse: 2 sell, 2 buy, 1 hold — the risk-adjusted answer in the presence of genuine uncertainty is a small position (2%) that captures upside in the bull scenario without being catastrophic in the bear scenario; this is the Kelly-optimal solution under parameter uncertainty",
+          "supporting_evidence": [
+            {
+              "claim": "Kelly under parameter uncertainty: optimal fraction halved vs point estimate",
+              "source_type": "quantitative_finance",
+              "confidence": 0.90,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "final_recommendation": "2% allocation, 1-5% rebalancing band, hard stop at -50%"
+          },
+          "tokens_used": 3021,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "macro_economist",
+          "agent_name": "Macro Economist",
+          "round_number": 3,
+          "recommendation": "buy",
+          "conviction_score": 0.82,
+          "numeric_score": 0.68,
+          "thesis_agreement": "Final: strong buy on structural macro thesis — fiscal dominance era makes hard-cap assets essential",
+          "key_argument": "The structural macro case is overwhelming: $102T global sovereign debt, 6.5% US deficit/GDP, $7T in negative real yield bonds globally — in this environment any institutional portfolio with a 10+ year horizon that does not have SOME exposure to a fixed-supply asset is taking uncompensated currency debasement risk",
+          "supporting_evidence": [
+            {
+              "claim": "$7T in bonds with negative real yields globally (IMF 2026)",
+              "source_type": "macroeconomic_data",
+              "confidence": 0.91,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "fiscal_dominance_probability": "85% over 10-year horizon",
+            "optimal_hard_asset_allocation": "5-10% (split gold/BTC)"
+          },
+          "tokens_used": 5812,
+          "position_changed": false,
+          "position_change_reason": null
+        },
+        {
+          "agent_type": "contrarian",
+          "agent_name": "Contrarian",
+          "round_number": 3,
+          "recommendation": "hold",
+          "conviction_score": 0.60,
+          "numeric_score": -0.12,
+          "thesis_agreement": "Moving to hold — the timeframe distinction (cyclical vs structural) is the key insight that changes my view",
+          "key_argument": "The momentum trader's insight that this is a 12-18 month cyclical trade vs a 10-year structural thesis is the most important clarification of the debate; for the cyclical trade the momentum and macro arguments are compelling; for the structural thesis the risks remain too high; a small position (2-3%) that captures the cycle while maintaining optionality is the right answer",
+          "supporting_evidence": [
+            {
+              "claim": "Momentum trader's timeframe distinction resolves the apparent bull-bear conflict",
+              "source_type": "debate_context",
+              "confidence": 0.90,
+              "supports_thesis": true
+            }
+          ],
+          "agent_specific_analysis": {
+            "final_stance": "hold — small position for cyclical trade only",
+            "regulatory_risk_assessment": "still the key long-term risk"
+          },
+          "tokens_used": 4802,
+          "position_changed": true,
+          "position_change_reason": "Momentum trader's timeframe clarification changes the debate framing; small position appropriate for cyclical trade even if structural thesis is uncertain"
+        }
+      ],
+      "conflict_points": [
+        {
+          "agent_a": "momentum_trader",
+          "agent_b": "value_investor",
+          "recommendation_a": "buy",
+          "recommendation_b": "sell",
+          "argument_a_excerpt": "Post-halving 12-month median return: +285% — buying the cycle, not making a 10-year prediction",
+          "argument_b_excerpt": "Institutional fiduciaries cannot allocate to an asset with no cash flows without violating prudent investor standards",
+          "conflict_type": "directional"
+        }
+      ]
+    }
+  ],
+  "tiebreaker_output": {
+    "activated": true,
+    "activation_reason": "divergence_score=0.65 exceeded tiebreaker_threshold=0.55 at max_rounds=3",
+    "strongest_bull_argument": "Momentum Trader: post-halving cycle trade with 12-18 month horizon; historical median +285%; RSI not yet overbought; futures funding rate neutral",
+    "strongest_bear_argument": "Value Investor: no fundamental cash flow basis; 3 prior cycles each with >75% drawdown; ERISA prudent investor standard creates fiduciary barriers to large institutional allocation",
+    "tie_break_reason": "The core disagreement is a timeframe mismatch, not a factual dispute. Both sides are correct within their respective timeframes: the bear case holds for the 10-year structural gold-replacement thesis (unproven, high uncertainty), while the bull case holds for a 12-18 month cyclical momentum trade (high historical base rate). Resolving to a small (2-3%) position captures the cyclical upside while respecting the structural uncertainty — consistent with the Kelly-optimal solution under parameter uncertainty advocated by the Risk Analyst.",
+    "tiebreaker_lean": "hold",
+    "recommended_action": "Allocate 2% to BTC immediately as a cyclical trade. Set a rebalancing band of 1-5%. Reassess the structural gold-replacement thesis in 18 months with fresh data on US regulatory framework and sovereign wealth fund direct allocation precedent."
+  },
+  "committee_memo": {
+    "debate_id": "a9e4c72b-1f3d-4a88-b561-0d7e2f8c3a15",
+    "thesis": "Bitcoin is a generational store-of-value asset that should replace gold allocation in institutional portfolios over the next decade",
+    "final_recommendation": "hold",
+    "consensus_score": 0.42,
+    "confidence_score": 0.58,
+    "key_insights": [
+      "The committee resolved a fundamental timeframe mismatch: BTC as a 12-18 month cyclical trade is high-conviction; BTC as a 10-year gold replacement is genuinely uncertain",
+      "A 2% portfolio allocation is Kelly-optimal under parameter uncertainty — small enough to survive a -75% drawdown, large enough to matter if the bull case materialises",
+      "The halving cycle model places BTC in mid-breakout phase with 12-18 months of runway before typical cycle exhaustion signals (RSI >80, funding rate >0.1%/8hr)",
+      "Sovereign wealth fund adoption is the key structural catalyst: first G7 direct allocation (est. 2027-2028) would create fiduciary cover for broad institutional adoption",
+      "Tiebreaker invoked at max rounds=3 with divergence_score=0.65; lean: hold with 2% cyclical allocation"
+    ],
+    "risk_factors": [
+      "30-day 95% VaR of -45% — each 1% portfolio allocation carries outsized volatility impact",
+      "Regulatory fragmentation: US Digital Asset Bill stalled; EU MiCA creates compliance complexity",
+      "Consensus sentiment at 88% institutional bullish — highest since 2021 peak which preceded -77% drawdown",
+      "No fundamental cash flow basis — ERISA and similar frameworks may limit large pension fund allocations",
+      "BTC-SPX correlation of 0.72 in crisis periods — not a true safe haven; does not replace gold's portfolio hedge function"
+    ],
+    "dissenting_views": [
+      "Value Investor (sell): no DCF-compatible valuation framework exists; institutional fiduciaries risk violating prudent investor standards; recommends using gold for debasement hedging instead",
+      "Contrarian (final: hold): regulatory risk remains the single biggest long-term threat; would only increase allocation after clear US property rights legislation passes"
+    ],
+    "agent_positions": {
+      "value_investor": "sell",
+      "momentum_trader": "buy",
+      "risk_analyst": "hold",
+      "macro_economist": "buy",
+      "contrarian": "hold"
+    },
+    "convergence_trajectory": [0.19, 0.27, 0.35],
+    "total_rounds": 3,
+    "tiebreaker_activated": true,
+    "token_usage": {
+      "total_budget": 80000,
+      "tokens_spent": 76891,
+      "tokens_remaining": 3109,
+      "efficiency_score": 0.961
+    },
+    "model": "gemini/gemini-2.5-flash",
+    "generated_at": "2026-08-18T09:31:22.841903+00:00"
+  }
+}

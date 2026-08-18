@@ -187,11 +187,31 @@ async def node_allocate_budget(state: DebateState) -> dict:
 
     total_allocated = sum(allocations.values())
     if total_allocated > available and available > 0:
-        scale = available / total_allocated
-        allocations = {
-            agent: max(_MIN_AGENT_TOKENS, int(tokens * scale))
-            for agent, tokens in allocations.items()
-        }
+        if available < _MIN_AGENT_TOKENS * _NUM_AGENTS:
+            # Not enough budget to give everyone the minimum — distribute proportionally,
+            # never clamping up to _MIN_AGENT_TOKENS (that would exceed budget).
+            scale = available / total_allocated
+            allocations = {
+                agent: max(1, int(tokens * scale))
+                for agent, tokens in allocations.items()
+            }
+        else:
+            scale = available / total_allocated
+            allocations = {
+                agent: max(_MIN_AGENT_TOKENS, int(tokens * scale))
+                for agent, tokens in allocations.items()
+            }
+        # Final hard cap: ensure total never exceeds available
+        final_total = sum(allocations.values())
+        if final_total > available:
+            sorted_agents = sorted(allocations.keys())
+            excess = final_total - available
+            for agent in sorted_agents:
+                if excess <= 0:
+                    break
+                reduction = min(allocations[agent], excess)
+                allocations[agent] -= reduction
+                excess -= reduction
         logger.warning(
             "node.allocate_budget.scaled_down",
             original_total=total_allocated,
