@@ -11,10 +11,12 @@ from fastapi.responses import JSONResponse
 
 from investment_agents.api.routes.debate import router as debate_router
 from investment_agents.api.routes.health import router as health_router
+from investment_agents.config.settings import get_settings
 
 
 def configure_logging() -> None:
     """Configure structlog for structured JSON logging."""
+    settings = get_settings()
     structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
@@ -31,7 +33,7 @@ def configure_logging() -> None:
         cache_logger_on_first_use=True,
     )
     logging.basicConfig(
-        level=logging.INFO,
+        level=getattr(logging, settings.log_level.upper(), logging.INFO),
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
@@ -60,12 +62,14 @@ app = FastAPI(
 )
 
 # ── Middleware ─────────────────────────────────────────────────────────────
+# allow_origins=["*"] + allow_credentials=True is a CORS spec violation.
+_settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Tighten in production
+    allow_origins=_settings.cors_origins_list,  # use configured origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # ── Routers ────────────────────────────────────────────────────────────────
@@ -87,8 +91,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return JSONResponse(
         status_code=500,
         content={
-            "error": type(exc).__name__,
-            "detail": str(exc),
+            "error": "InternalServerError",
+            "detail": "An unexpected error occurred. Please try again later.",
             "path": str(request.url.path),
         },
     )

@@ -7,7 +7,7 @@ to connected React clients in real time.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 
@@ -57,7 +57,7 @@ class StreamEvent(BaseModel):
     type: StreamEventType
     data: Dict[str, Any]
     debate_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_sse_dict(self) -> Dict[str, str]:
         """Convert to the format expected by sse-starlette."""

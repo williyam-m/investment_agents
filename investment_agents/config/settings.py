@@ -8,7 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,10 +26,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     default_model: str = "ollama/llama2:7b"
 
-    # Cloud provider keys (optional)
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
-    google_api_key: str = ""
+    openai_api_key: SecretStr = SecretStr("")
+    anthropic_api_key: SecretStr = SecretStr("")
+    google_api_key: SecretStr = SecretStr("")
 
     # ── Database ──────────────────────────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./debates.db"
@@ -77,6 +76,18 @@ class Settings(BaseSettings):
     @property
     def langfuse_enabled(self) -> bool:
         return bool(self.langfuse_public_key and self.langfuse_secret_key)
+
+    def get_openai_api_key(self) -> str:
+        """Return the OpenAI API key value (use instead of accessing directly)."""
+        return self.openai_api_key.get_secret_value()
+
+    def get_anthropic_api_key(self) -> str:
+        """Return the Anthropic API key value."""
+        return self.anthropic_api_key.get_secret_value()
+
+    def get_google_api_key(self) -> str:
+        """Return the Google API key value."""
+        return self.google_api_key.get_secret_value()
 
 
 @lru_cache(maxsize=1)

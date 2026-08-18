@@ -12,6 +12,7 @@ can use to confirm consensus areas or to skip redundant explore steps.
 
 from __future__ import annotations
 
+from collections import deque
 from itertools import combinations
 from typing import Dict, List, Optional, Tuple
 
@@ -262,11 +263,10 @@ class ConvergenceDetector:
         for start in range(n):
             if visited[start] or not adjacency[start]:
                 continue
-            # BFS
             component: List[int] = []
-            queue = [start]
+            queue: deque[int] = deque([start])
             while queue:
-                node = queue.pop(0)
+                node = queue.popleft()
                 if visited[node]:
                     continue
                 visited[node] = True

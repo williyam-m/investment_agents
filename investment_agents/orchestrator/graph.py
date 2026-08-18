@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import structlog
@@ -123,15 +123,15 @@ class DebateOrchestrator:
         if state.get("committee_memo"):
             try:
                 memo = CommitteeMemo.model_validate(state["committee_memo"])
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("state_to_trace.memo_parse_failed", error=str(exc))
 
         conflicts = []
         for c in (state.get("conflicts") or []):
             try:
                 conflicts.append(ConflictPoint.model_validate(c))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("state_to_trace.conflict_parse_failed", error=str(exc))
 
         tb_outputs = state.get("tiebreaker_outputs") or []
 
@@ -141,18 +141,20 @@ class DebateOrchestrator:
             try:
                 br = BudgetReport.model_validate(budget_report_dict)
                 budget_summary = BudgetSummary.from_report(br)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("state_to_trace.budget_report_parse_failed", error=str(exc))
 
         rounds = []
         for r in (state.get("rounds") or []):
             try:
                 rounds.append(RoundTrace.model_validate(r))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("state_to_trace.round_parse_failed", error=str(exc))
 
         ctx = request.investment_context if request.investment_context else InvestmentContext()
         model = request.model_config_.model if request.model_config_ else "ollama/llama2:7b"
+
+        stream_events = list(state.get("stream_events") or [])
 
         return DebateTrace(
             debate_id=state["debate_id"],
@@ -165,8 +167,9 @@ class DebateOrchestrator:
             tiebreaker_outputs=tb_outputs,
             committee_memo=memo,
             budget_summary=budget_summary,
+            stream_events=stream_events,
             status="complete" if memo else "failed",
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
     async def run(self, request: DebateRequest) -> DebateTrace:
@@ -191,10 +194,20 @@ class DebateOrchestrator:
             logger.error("orchestrator.run_failed", error=str(e))
             raise
 
-    async def run_streaming(self, request: DebateRequest) -> AsyncIterator[StreamEvent]:
-        """Run debate and yield StreamEvents as they are produced."""
+    async def run_streaming(
+        self,
+        request: DebateRequest,
+        repository=None,
+    ) -> AsyncIterator[StreamEvent]:
+        """
+        Run debate and yield StreamEvents as they are produced.
+
+        Optionally accepts a repository to persist the final trace
+        once the graph finishes, so SSE replay works on reconnect.
+        """
         initial = self._make_initial_state(request)
         seen_event_ids = set()
+        final_state: Optional[Dict[str, Any]] = None
 
         async for chunk in self._graph.astream(initial, stream_mode="updates"):
             for node_name, node_state in chunk.items():
@@ -205,5 +218,32 @@ class DebateOrchestrator:
                         seen_event_ids.add(ev_id)
                         try:
                             yield StreamEvent.model_validate(ev_dict)
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            logger.warning(
+                                "run_streaming.event_parse_failed",
+                                error=str(exc),
+                            )
+            # Track the latest full node state for final state capture
+            # (LangGraph "updates" mode returns partial node updates)
+            if final_state is None:
+                final_state = {}
+            for node_name, node_state in chunk.items():
+                final_state.update(node_state)
+
+        if repository is not None and final_state is not None:
+            try:
+                # Merge initial state with final accumulated state
+                merged = dict(initial)
+                merged.update(final_state)
+                trace = self._state_to_trace(merged, request)  # type: ignore[arg-type]
+                repository.save(trace)
+                logger.info(
+                    "run_streaming.trace_persisted",
+                    debate_id=request.debate_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "run_streaming.persist_failed",
+                    debate_id=request.debate_id,
+                    error=str(exc),
+                )

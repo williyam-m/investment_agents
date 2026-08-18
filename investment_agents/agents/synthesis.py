@@ -88,6 +88,7 @@ class SynthesisAgent(BaseAnalystAgent):
         conflicts: List[ConflictPoint],
         debate_id: str,
         token_allocation: int,
+        total_rounds: int = 0,
     ) -> CommitteeMemo:
         """
         Synthesize the full debate into a CommitteeMemo.
@@ -99,11 +100,13 @@ class SynthesisAgent(BaseAnalystAgent):
         conflicts       : Detected conflict points from the divergence scorer.
         debate_id       : Unique identifier for this debate run.
         token_allocation: Max tokens to spend on this call.
+        total_rounds    : Total rounds completed in this debate.
 
         Returns
         -------
         CommitteeMemo   : Production-quality investment recommendation with full trace.
         """
+        self._total_rounds = total_rounds  # stored so _parse_memo can use it
         log = logger.bind(agent_id="synthesis", debate_id=debate_id)
 
         debate_context = self._format_debate_context(thesis, all_outputs, conflicts)
@@ -132,7 +135,7 @@ class SynthesisAgent(BaseAnalystAgent):
                     temperature=0.5,
                 )
                 data = self.llm.extract_json(raw_text)
-                memo = self._parse_memo(data, total_tokens, self.llm.model)
+                memo = self._parse_memo(data, total_tokens, self.llm.model, total_rounds=total_rounds)
                 log.info(
                     "synthesis.complete",
                     recommendation=memo.final_recommendation,
@@ -164,7 +167,7 @@ class SynthesisAgent(BaseAnalystAgent):
     # ------------------------------------------------------------------
 
     def _parse_memo(
-        self, data: Dict[str, Any], total_tokens: int, model: str
+        self, data: Dict[str, Any], total_tokens: int, model: str, total_rounds: int = 0
     ) -> CommitteeMemo:
         """Parse raw LLM JSON dict into a validated CommitteeMemo."""
         # Recommendation

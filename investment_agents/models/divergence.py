@@ -5,7 +5,7 @@ Used by the DivergenceScorer to assess how much agents disagree.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -89,16 +89,20 @@ class DivergenceReport(BaseModel):
         description="numeric_score per agent_type this round",
     )
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def is_high_divergence(self) -> bool:
-        return self.overall_score > 0.55
+        from investment_agents.config.settings import get_settings
+        return self.overall_score > get_settings().explore_threshold
 
     @property
     def is_converging(self) -> bool:
-        return self.overall_score < 0.30
+        from investment_agents.config.settings import get_settings
+        return self.overall_score < get_settings().exploit_threshold
 
     @property
     def is_transition(self) -> bool:
-        return 0.30 <= self.overall_score <= 0.55
+        from investment_agents.config.settings import get_settings
+        s = get_settings()
+        return s.exploit_threshold <= self.overall_score <= s.explore_threshold

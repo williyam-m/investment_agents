@@ -86,6 +86,11 @@ export default function App() {
     setHistoryLoading(false)
   }, [])
 
+  // Fetch history when panel opens, and also on mount so count is ready
+  useEffect(() => {
+    fetchHistory()
+  }, [])                              // on mount
+
   useEffect(() => {
     if (showHistory) fetchHistory()
   }, [showHistory, fetchHistory])
@@ -189,6 +194,7 @@ export default function App() {
       }
 
       setStatus('complete')
+      fetchHistory()
     } catch (e) {
       stopThinkingCycle()
       setError(e.message)
@@ -231,6 +237,7 @@ export default function App() {
       stopThinkingCycle()
       setStatus('complete')
       es.close()
+      fetchHistory()
     })
 
     es.addEventListener('debate_complete', e => {
@@ -239,12 +246,14 @@ export default function App() {
       stopThinkingCycle()
       setStatus('complete')
       es.close()
+      fetchHistory()
     })
 
     es.onerror = () => {
       setStatus(s => (s === 'running' ? 'complete' : s))
       stopThinkingCycle()
       es.close()
+      fetchHistory()
     }
   }
 

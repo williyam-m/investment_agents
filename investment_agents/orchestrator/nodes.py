@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import structlog
@@ -16,6 +16,8 @@ from investment_agents.agents.tiebreaker import TiebreakerAgent
 from investment_agents.agents.value_investor import ValueInvestorAgent
 from investment_agents.analysis.convergence import ConvergenceDetector
 from investment_agents.analysis.divergence import DivergenceScorer
+from investment_agents.budget.allocator import BudgetAllocator
+from investment_agents.budget.policy import ExploreExploitPolicy, DebateMode as PolicyDebateMode
 from investment_agents.config.settings import get_settings
 from investment_agents.llm.client import LLMClient
 from investment_agents.models.agent_output import AnalystOutput
@@ -145,10 +147,7 @@ async def node_allocate_budget(state: DebateState) -> dict:
     """
     Decide how many tokens each of the 5 core agents receives this round.
 
-    EXPLORE mode  → equal split across 5 agents from available tokens.
-    EXPLOIT mode  → weight by exploit_worthy_agents ranking from
-                    divergence_report.
-
+    Uses BudgetAllocator for explore/exploit weighted allocation.
     Every agent is guaranteed at least _MIN_AGENT_TOKENS tokens.
     """
     debate_id = state["debate_id"]
@@ -167,40 +166,41 @@ async def node_allocate_budget(state: DebateState) -> dict:
         available=available,
     )
 
-    # Build allocation dict: agent_type → tokens
-    allocations: Dict[str, int] = {}
+    settings = get_settings()
+    allocator = BudgetAllocator(agent_types=_AGENT_TYPES, settings=settings)
 
-    if debate_mode == "explore":
-        # Equal split, each at least _MIN_AGENT_TOKENS
-        per_agent = max(_MIN_AGENT_TOKENS, available // _NUM_AGENTS)
-        for agent_type in _AGENT_TYPES:
-            allocations[agent_type] = per_agent
+    # Deserialize DivergenceReport if present (for exploit-mode weighting)
+    div_report_obj: Optional[DivergenceReport] = None
+    div_report_dict = state.get("divergence_report")
+    if div_report_dict:
+        try:
+            div_report_obj = DivergenceReport.model_validate(div_report_dict)
+        except Exception as exc:
+            logger.warning("node.allocate_budget.divergence_parse_failed", error=str(exc))
 
-    else:  # exploit
-        # Weight by exploit_worthy_agents from last divergence report
-        div_report_dict = state.get("divergence_report")
-        exploit_ordered: List[str] = []
-        if div_report_dict:
-            exploit_ordered = div_report_dict.get("exploit_worthy_agents", [])
+    allocations: Dict[str, int] = allocator.allocate_round(
+        available_tokens=available,
+        round_number=round_number,
+        mode=debate_mode,
+        divergence_report=div_report_obj,
+    )
 
-        # Fill in any agents not present in ranking
-        ordered = list(exploit_ordered) + [
-            a for a in _AGENT_TYPES if a not in exploit_ordered
-        ]
-
-        # Assign weights: first agent gets most tokens
-        weights = [_NUM_AGENTS - i for i in range(len(ordered))]
-        total_weight = sum(weights)
-        raw = {
-            agent: max(_MIN_AGENT_TOKENS, int(available * w / total_weight))
-            for agent, w in zip(ordered, weights)
+    total_allocated = sum(allocations.values())
+    if total_allocated > available and available > 0:
+        scale = available / total_allocated
+        allocations = {
+            agent: max(_MIN_AGENT_TOKENS, int(tokens * scale))
+            for agent, tokens in allocations.items()
         }
-        # Only include the 5 core agents
-        for agent_type in _AGENT_TYPES:
-            allocations[agent_type] = raw.get(agent_type, _MIN_AGENT_TOKENS)
+        logger.warning(
+            "node.allocate_budget.scaled_down",
+            original_total=total_allocated,
+            available=available,
+            scaled_total=sum(allocations.values()),
+        )
 
     # Convert to BudgetAllocation objects and append to the report
-    mode_str = debate_mode  # "explore" | "exploit"
+    mode_str = debate_mode
     alloc_objects: List[BudgetAllocation] = []
     for agent_type, tokens in allocations.items():
         alloc_obj = BudgetAllocation(
@@ -220,8 +220,8 @@ async def node_allocate_budget(state: DebateState) -> dict:
         total_round_budget=sum(allocations.values()),
         allocations=allocations,
         reasoning=(
-            f"{'Equal split across 5 agents' if debate_mode == 'explore' else 'Exploit-weighted allocation by divergence ranking'} "
-            f"for round {round_number}."
+            f"BudgetAllocator {'equal split' if debate_mode == 'explore' else 'exploit-weighted allocation'} "
+            f"for round {round_number}. Available: {available} tokens."
         ),
     )
     budget_report.decisions.append(decision)
@@ -676,7 +676,7 @@ async def node_synthesize(state: DebateState) -> dict:
     settings = get_settings()
     synthesis_budget = max(
         settings.min_synthesis_tokens,
-        budget_report.token_budget.remaining,
+        budget_report.token_budget.available,
     )
 
     logger.info(
@@ -710,6 +710,10 @@ async def node_synthesize(state: DebateState) -> dict:
     # Combine all outputs: analyst rounds + tiebreakers
     all_outputs = all_round_outputs + tiebreaker_outputs
 
+    total_rounds_completed = max(
+        (o.round_number for o in all_outputs), default=round_number
+    )
+
     # Run SynthesisAgent
     llm = LLMClient(model=model)
     synthesis_agent = SynthesisAgent(llm)
@@ -721,6 +725,7 @@ async def node_synthesize(state: DebateState) -> dict:
             conflicts=conflicts,
             debate_id=debate_id,
             token_allocation=synthesis_budget,
+            total_rounds=total_rounds_completed,
         )
         # Record synthesis token usage
         budget_report.record_usage(
@@ -762,7 +767,7 @@ async def node_synthesize(state: DebateState) -> dict:
         agent_outputs=current_round_outputs,
         divergence_report=div_report_obj,
         routing_decision=None,
-        completed_at=datetime.utcnow(),
+        completed_at=datetime.now(timezone.utc),
     )
 
     existing_rounds: List[dict] = list(state.get("rounds", []))
@@ -843,30 +848,41 @@ async def node_prepare_next_round(state: DebateState) -> dict:
         current_round=round_number,
     )
 
-    # ── Determine new mode ─────────────────────────────────────────────────
+    # ── Determine new mode using ExploreExploitPolicy ───────────────
     new_mode = debate_mode  # default: keep current mode
     mode_change_reason = ""
     divergence_score = 0.0
+    policy_mode_str = debate_mode
 
     if div_report_dict:
         try:
             div_report = DivergenceReport.model_validate(div_report_dict)
             divergence_score = div_report.overall_score
 
-            if div_report.is_high_divergence and debate_mode != "explore":
-                new_mode = "explore"
-                mode_change_reason = (
-                    f"High divergence ({divergence_score:.3f} > {settings.explore_threshold}) "
-                    "— switching back to explore mode."
-                )
-            elif div_report.is_converging and debate_mode != "exploit":
-                new_mode = "exploit"
-                mode_change_reason = (
-                    f"Convergence detected ({divergence_score:.3f} < {settings.exploit_threshold}) "
-                    "— switching to exploit mode."
-                )
-        except Exception:
-            pass
+            policy = ExploreExploitPolicy(
+                explore_threshold=settings.explore_threshold,
+                exploit_threshold=settings.exploit_threshold,
+            )
+            policy_mode, mode_change_reason = policy.decide(
+                divergence_report=div_report,
+                round_number=round_number,
+                max_rounds=state["max_rounds"],
+                remaining_tokens=budget_report.token_budget.remaining,
+                min_synthesis_tokens=settings.min_synthesis_tokens,
+            )
+
+            # Map PolicyDebateMode → string stored in state
+            if policy_mode == PolicyDebateMode.EXPLORE:
+                policy_mode_str = "explore"
+            elif policy_mode in (PolicyDebateMode.EXPLOIT, PolicyDebateMode.TRANSITION):
+                policy_mode_str = "exploit"
+            # SYNTHESIZE is handled by the edge router; keep current mode in state
+            elif policy_mode == PolicyDebateMode.SYNTHESIZE:
+                policy_mode_str = debate_mode
+
+            new_mode = policy_mode_str
+        except Exception as exc:
+            logger.warning("node.prepare_next_round.policy_failed", error=str(exc))
 
     # Override with explicit routing decision if present
     if routing_decision_dict:
@@ -876,8 +892,8 @@ async def node_prepare_next_round(state: DebateState) -> dict:
                 new_mode = rd.new_mode
                 mode_change_reason = rd.reason
                 divergence_score = rd.divergence_score
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("node.prepare_next_round.routing_decision_parse_failed", error=str(exc))
 
     # Emit MODE_CHANGED event if mode switches
     if new_mode != debate_mode:
@@ -927,7 +943,7 @@ async def node_prepare_next_round(state: DebateState) -> dict:
         agent_outputs=current_round_outputs,
         divergence_report=div_report_obj,
         routing_decision=routing_obj,
-        completed_at=datetime.utcnow(),
+        completed_at=datetime.now(timezone.utc),
     )
 
     existing_rounds: List[dict] = list(state.get("rounds", []))
@@ -942,6 +958,15 @@ async def node_prepare_next_round(state: DebateState) -> dict:
         new_mode=new_mode,
     )
 
+    new_routing_decision = RoutingDecision(
+        after_round=round_number,
+        decision=new_mode,
+        reason=mode_change_reason or f"Continuing in {new_mode} mode.",
+        divergence_score=divergence_score,
+        previous_mode=debate_mode,
+        new_mode=new_mode,
+    )
+
     return {
         "round_number": next_round_number,
         "debate_mode": new_mode,
@@ -950,4 +975,5 @@ async def node_prepare_next_round(state: DebateState) -> dict:
         "stream_events": new_stream_events,
         # Clear divergence_report — will be re-scored next round
         "divergence_report": None,
+        "routing_decision": new_routing_decision.model_dump(mode="json"),
     }

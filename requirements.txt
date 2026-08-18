@@ -14,7 +14,7 @@ numpy>=1.26.0
 scikit-learn>=1.4.0
 
 # Optional: semantic divergence scoring (recommended)
-# sentence-transformers>=3.0.0
+sentence-transformers>=3.0.0
 
 # Dev / Testing
 pytest>=8.2.0

@@ -142,7 +142,7 @@ async def stream_debate(debate_id: str) -> EventSourceResponse:
         req = _repo.get_request(debate_id)
         if req is not None:
             try:
-                async for event in _orchestrator.run_streaming(req):
+                async for event in _orchestrator.run_streaming(req, repository=_repo):
                     yield event.to_sse_dict()
             except asyncio.CancelledError:
                 pass

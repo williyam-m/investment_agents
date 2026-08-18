@@ -53,10 +53,12 @@ class LLMClient:
         if self.model.startswith("ollama/"):
             litellm.api_base = self._settings.ollama_base_url
 
-        if self._settings.openai_api_key:
-            litellm.openai_key = self._settings.openai_api_key
-        if self._settings.anthropic_api_key:
-            litellm.anthropic_key = self._settings.anthropic_api_key
+        openai_key = self._settings.get_openai_api_key()
+        anthropic_key = self._settings.get_anthropic_api_key()
+        if openai_key:
+            litellm.openai_key = openai_key
+        if anthropic_key:
+            litellm.anthropic_key = anthropic_key
 
     async def complete(
         self,

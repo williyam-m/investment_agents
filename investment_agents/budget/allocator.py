@@ -80,12 +80,23 @@ class BudgetAllocator:
         """Split available tokens equally, ensuring minimum per agent."""
         base = available // n
         base = max(base, MIN_AGENT_TOKENS)
-        # Distribute remainder to first agents
+        # (this can happen when clamping to MIN_AGENT_TOKENS exceeds available)
+        if base * n > available and available > 0:
+            # Best-effort: give as many agents as possible MIN_AGENT_TOKENS,
+            # rest get whatever is left.
+            allocations = []
+            remaining = available
+            for i in range(n):
+                share = min(MIN_AGENT_TOKENS, max(0, remaining))
+                allocations.append(share)
+                remaining -= share
+            return allocations
+        # Normal path: distribute remainder to first agents
         remainder = available - base * n
         allocations = []
         for i in range(n):
-            extra = 1 if i < remainder else 0
-            allocations.append(max(MIN_AGENT_TOKENS, base + extra))
+            extra = 1 if (remainder > 0 and i < remainder) else 0
+            allocations.append(base + extra)
         return allocations
 
     def _weighted_split(
@@ -104,11 +115,13 @@ class BudgetAllocator:
         exploit_order = divergence_report.exploit_worthy_agents
         max_rank = len(exploit_order)
 
+        rank_map: Dict[str, int] = {agent: i for i, agent in enumerate(exploit_order)}
+
         # Agents ranked higher get more tokens
         weights: Dict[str, float] = {}
         for agent in self.agent_types:
-            if agent in exploit_order:
-                rank = exploit_order.index(agent)  # 0 = most distinctive
+            if agent in rank_map:
+                rank = rank_map[agent]  # O(1) lookup
                 # Weight decays from max_rank down to 1
                 weights[agent] = float(max_rank - rank)
             else:
@@ -122,9 +135,8 @@ class BudgetAllocator:
             allocated = max(MIN_AGENT_TOKENS, int(available * share))
             allocations.append(allocated)
 
-        # Trim to available if we over-allocated due to minimums
         total_allocated = sum(allocations)
-        if total_allocated > available:
+        if total_allocated > available and available > 0:
             # Scale down proportionally, keeping minimums
             scale = available / total_allocated
             allocations = [max(MIN_AGENT_TOKENS, int(a * scale)) for a in allocations]

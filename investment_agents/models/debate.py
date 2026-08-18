@@ -5,7 +5,7 @@ Debate request, trace, and round data models.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -34,7 +34,7 @@ class InvestmentContext(BaseModel):
     )
 
 
-class ModelConfig(BaseModel):
+class LLMModelConfig(BaseModel):
     """LLM model configuration for the debate."""
 
     model: str = Field(default="ollama/llama2:7b", description="LiteLLM model string")
@@ -62,8 +62,8 @@ class DebateRequest(BaseModel):
         description="Total token budget for the entire debate",
     )
     max_rounds: int = Field(default=3, ge=1, le=5)
-    model_config_: ModelConfig = Field(
-        default_factory=ModelConfig,
+    model_config_: LLMModelConfig = Field(
+        default_factory=LLMModelConfig,
         alias="model_config",
     )
     debate_id: str = Field(
@@ -95,7 +95,7 @@ class RoundTrace(BaseModel):
     agent_outputs: List[AnalystOutput]
     divergence_report: Optional[DivergenceReport] = None
     routing_decision: Optional[RoutingDecision] = None
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
 
@@ -125,13 +125,18 @@ class DebateTrace(BaseModel):
     # Budget
     budget_summary: Optional[BudgetSummary] = None
 
+    stream_events: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Serialized StreamEvent dicts from the debate run",
+    )
+
     # Metadata
     status: str = Field(
         default="pending",
         description="pending | running | complete | failed",
     )
     error: Optional[str] = None
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
 

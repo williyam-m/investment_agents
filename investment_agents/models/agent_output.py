@@ -6,7 +6,7 @@ No free text flows between system components.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -133,7 +133,7 @@ class AnalystOutput(BaseModel):
 
     # Metadata
     model_used: str = Field(default="", description="LiteLLM model string used for this call")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     raw_llm_response: Optional[str] = Field(
         None, description="Raw LLM text before parsing (for debugging)", exclude=True
     )
@@ -154,5 +154,4 @@ class AnalystOutput(BaseModel):
             return 0.0
         return self.tokens_used / self.tokens_allocated
 
-    class Config:
-        use_enum_values = False
+    model_config = ConfigDict(use_enum_values=False)
